@@ -257,6 +257,14 @@ const routes = [
       title: '加载异常',
     },
   },
+  // im livechatroom
+  {
+    path: '/im/livechatroom',
+    component: () => import('@/views/emLiveChatroom/index.vue'),
+    meta: {
+      title: '直播聊天室',
+    },
+  },
   {
     path: '/404',
     component: () => import('@/views/exception/404.vue'),

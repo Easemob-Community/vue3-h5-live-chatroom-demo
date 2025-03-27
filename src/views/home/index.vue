@@ -10,7 +10,7 @@ import { onMounted, reactive, ref } from 'vue';
 import API_GOODS from '@/apis/goods';
 import API_BANNER from '@/apis/banner';
 import IMAGE_LIST_EMPTY from '@/assets/images/empty/good.png';
-
+import IMAGE_LIVE from '@/assets/images/testimlive.png';
 onMounted(() => {
   getBannerList();
   listRef.value?.loadData();
@@ -56,6 +56,10 @@ function getGoodList() {
 function onGoodClicked(id: number) {
   router.push({ path: '/good/detail', query: { id } });
 }
+
+const entryLiveChatroom = () => {
+  router.push({ path: '/im/livechatroom' });
+};
 </script>
 
 <template>
@@ -71,6 +75,23 @@ function onGoodClicked(id: number) {
           <van-image class="swiper-item-img" fit="cover" :src="item.picUrl" :alt="item.title" />
         </van-swipe-item>
       </van-swipe>
+    </div>
+    <div>
+      <Plate class="section-header" title="观看直播" />
+      <div class="live-list">
+        <div class="live-item" @click="entryLiveChatroom">
+          <van-image class="live-item-img" fit="cover" :src="IMAGE_LIVE" :alt="IMAGE_LIVE" />
+          <div class="live-item-info">
+            <div class="live-item-title">
+              <div class="live-item-title-name">
+                <span>IM直播效果测试</span>
+              </div>
+              <van-tag type="danger">直播中</van-tag>
+            </div>
+            <div class="live-item-desc">点击进入测试直播间，感受直播间内嵌IM的效果。</div>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="main">
       <Plate class="section-header" title="商品列表" />
@@ -233,5 +254,39 @@ function onGoodClicked(id: number) {
       }
     }
   }
+}
+.live-list {
+  display: flex;
+  flex-wrap: wrap;
+  padding-left: 5px;
+}
+.live-item {
+  display: flex;
+  flex-direction: column;
+  width: 50%;
+}
+.live-item-img {
+  width: 100%;
+  height: 150px;
+}
+.live-item-info {
+  padding: 10px;
+}
+.live-item-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.live-item-title-name {
+  display: flex;
+  align-items: center;
+}
+.live-item-title-time {
+  display: flex;
+}
+.live-item-desc {
+  margin-top: 5px;
+  font-size: 14px;
+  color: var(--color-text-3);
 }
 </style>
