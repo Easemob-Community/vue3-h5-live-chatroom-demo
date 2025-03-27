@@ -26,6 +26,9 @@ importers:
       dayjs:
         specifier: ^1.11.5
         version: 1.11.9
+      easemob-websdk:
+        specifier: ^4.13.0
+        version: 4.13.0
       good-storage:
         specifier: ^1.1.1
         version: 1.1.1
@@ -1430,6 +1433,9 @@ packages:
   dotenv@16.3.1:
     resolution: {integrity: sha512-IPzF4w4/Rd94bA9imS68tZBaYyBWSCE47V1RGuMrB94iyTOIEwRmVL2x/4An+6mETpLrKJ5hQkB8W4kFAadeIQ==}
     engines: {node: '>=12'}
+
+  easemob-websdk@4.13.0:
+    resolution: {integrity: sha512-fI+56kkR5MRr1uQU4TEPWM3Qbs36JCyvbXjrIZMboUJxEuVCtIUFYX+E04/HiUNMjF1qXHGTQpB807h+JTg63w==}
 
   ejs@3.1.9:
     resolution: {integrity: sha512-rC+QVNMJWv+MtPgkt0y+0rVEIdbtxVADApW9JXrUVlzHetgcyczP/E7DJmWJ4fJCZF2cPcBk0laWO9ZHMG3DmQ==}
@@ -3928,6 +3934,8 @@ snapshots:
   dotenv-expand@8.0.3: {}
 
   dotenv@16.3.1: {}
+
+  easemob-websdk@4.13.0: {}
 
   ejs@3.1.9:
     dependencies:
