@@ -4,4 +4,4 @@ import WebSDK, { EasemobChat, EasemobChatStatic } from 'easemob-websdk';
 const EMClient = new WebSDK.connection({
   appKey: 'easemob-demo#support',
 });
-export { EMClient, EasemobChat, EasemobChatStatic };
+export { WebSDK, EMClient, EasemobChat, EasemobChatStatic };
