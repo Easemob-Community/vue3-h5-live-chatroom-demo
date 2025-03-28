@@ -6,11 +6,7 @@
       <!-- <video ref="videoRef" autoplay muted controls width="100%" height="auto"></video> -->
     </div>
     <!-- 互动弹幕区域 -->
-    <div class="danmaku-container">
-      <div class="danmaku-list" :style="{ transform: `translateY(${danmakuOffset}px)` }">
-        <div v-for="(danmaku, index) in danmakuList" :key="index" class="danmaku-item">{{ danmaku }}</div>
-      </div>
-    </div>
+    <DanmakuComp />
     <!-- 发送弹幕区域 -->
     <div class="send-danmaku-container">
       <input type="text" placeholder="输入弹幕内容" />
@@ -20,43 +16,71 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
-import LIVE_STREAM_URL from '@/assets/images/live-stream.jpg'; // 替换为实际的直播流URL
-// 拉流视频元素引用
-const videoRef = ref<HTMLVideoElement | null>(null);
-// 弹幕列表
-const danmakuList = ref<string[]>([]);
-// 弹幕滚动偏移量
-const danmakuOffset = ref(0);
-// 滚动定时器
-let scrollTimer: ReturnType<typeof setInterval> | null = null;
-
-// 模拟添加弹幕
-const addDanmaku = () => {
-  danmakuList.value.push(`弹幕 ${danmakuList.value.length + 1}`);
+import { ref, watchEffect, onMounted, onUnmounted } from 'vue';
+import { useRoute } from 'vue-router';
+import DanmakuComp from './components/DanmakuList/index.vue';
+// IM
+import { EMClient } from '@/easeim';
+const route = useRoute();
+const userId = ref<string>('');
+const roomId = ref<string>('');
+const accessToken = ref<string>('');
+watchEffect(() => {
+  console.log(route);
+  if (route.query.userId && route.query.roomId && route.query.token) {
+    userId.value = route.query.userId as string;
+    roomId.value = route.query.roomId as string;
+    accessToken.value = route.query.token as string;
+  }
+});
+//挂载连接监听
+const mountEMConnectedListener = () => {
+  EMClient.addEventHandler('CONNECTED', {
+    onConnected: async () => {
+      console.log('im connected');
+    },
+    onDisconnected: () => {
+      console.log('im disconnected');
+    },
+  });
 };
-
-// 触摸开始，停止滚动
-const onTouchStart = () => {
-  stopDanmakuScroll();
+//挂载消息监听
+const mountEMMessageListener = () => {
+  EMClient.addEventHandler('RECEIVED_NEW_MESSAGE', {});
 };
-
-// 触摸结束，继续滚动
-const onTouchEnd = () => {
-  startDanmakuScroll();
+mountEMMessageListener();
+mountEMConnectedListener();
+const joinChatroom = async () => {
+  try {
+    EMClient.joinChatRoom({
+      roomId: roomId.value,
+      message: '加入聊天室',
+    });
+  } catch (error) {
+    console.error('joinChatroom error', error);
+  }
 };
-
-// 停止弹幕滚动
-const stopDanmakuScroll = () => {
-  if (scrollTimer) {
-    clearInterval(scrollTimer);
-    scrollTimer = null;
+const loginIM = async () => {
+  try {
+    await EMClient.open({
+      user: userId.value,
+      accessToken: accessToken.value,
+    });
+    await joinChatroom();
+  } catch (error) {
+    console.error('loginIM error', error);
   }
 };
 
-onMounted(() => {});
+onMounted(() => {
+  loginIM();
+});
 
-onUnmounted(() => {});
+onUnmounted(() => {
+  EMClient.close();
+  EMClient.removeEventHandler('CONNECTED');
+  EMClient.removeEventHandler('RECEIVED_NEW_MESSAGE');
+});
 </script>
 
 <style scoped>
@@ -68,42 +92,6 @@ onUnmounted(() => {});
   display: flex;
   justify-content: center;
   align-items: center;
-}
-
-.danmaku-container {
-  /* 调整为距离底部 50px 开始，避免被输入框遮挡 */
-  bottom: 50px;
-  height: calc(30vh - 50px);
-  overflow: hidden;
-  position: absolute;
-  /* 从左侧开始 */
-  left: 0;
-  width: 100%;
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
-  z-index: 1;
-  /* 移除顶部定位 */
-  top: auto;
-}
-
-.danmaku-list {
-  position: absolute;
-  bottom: 0; /* 从底部开始显示 */
-  left: 0;
-  width: 100%;
-  height: auto; /* 高度自适应 */
-}
-.danmaku-item {
-  color: white;
-  font-size: 16px;
-  padding: 8px 12px;
-  background-color: rgba(0, 0, 0, 0.5);
-  border-radius: 10px;
-  margin: 5px 10px;
-  display: block; /* 改回block使每个弹幕独占一行 */
-  position: relative;
-  width: auto; /* 宽度自适应 */
-  white-space: nowrap;
 }
 
 .send-danmaku-container {

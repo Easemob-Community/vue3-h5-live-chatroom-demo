@@ -56,9 +56,16 @@ function getGoodList() {
 function onGoodClicked(id: number) {
   router.push({ path: '/good/detail', query: { id } });
 }
-
+//IM 进入直播间路由所需携带的必填参数
+const LOGIN_USERID = 'hfp';
+const LOGIN_ROOMID = '270955842699265';
+const LOGIN_ACCESS_TOKEN =
+  'YWMtRhLf6gt7EfCrxIFW80jBtQ1mN7fFQUJHtJstEOESXXmL9dUAWVkR77XfC6ZH8GNUAwMAAAGV2o1gtTeeSABfbEnM8vq4KNPyet5_QetM9KU9T9MnxhVel09d0Jz8wA';
 const entryLiveChatroom = () => {
-  router.push({ path: '/im/livechatroom' });
+  router.push({
+    path: '/im/livechatroom',
+    query: { userId: LOGIN_USERID, roomId: LOGIN_ROOMID, token: LOGIN_ACCESS_TOKEN },
+  });
 };
 </script>
 
