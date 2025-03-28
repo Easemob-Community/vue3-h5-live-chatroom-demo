@@ -57,20 +57,23 @@ const scrollToBottom = () => {
   /* 添加滚动条样式 */
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+  border-radius: 20px;
 }
 
 .danmaku-item {
   color: white;
   font-size: 16px;
   padding: 8px 12px;
-  box-sizing: border-box;
-  background-color: rgba(0, 0, 0, 0.5);
   border-radius: 10px;
   display: block;
   position: relative;
-  width: fit-content; /* 宽度根据内容自适应 */
-  max-width: 90%; /* 最大宽度限制 */
-  white-space: normal; /* 允许换行 */
-  word-break: break-word; /* 长单词换行 */
+  width: fit-content;
+  max-width: 90%;
+  white-space: normal;
+  word-break: break-word;
+  margin: 8px 0; /* 添加上下8px的外边距 */
+  /* 或者使用以下方式单独控制上下间距 */
+  /* margin-top: 8px; */
+  /* margin-bottom: 8px; */
 }
 </style>

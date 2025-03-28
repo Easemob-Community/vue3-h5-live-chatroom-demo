@@ -50,7 +50,6 @@ const mountEMConnectedListener = () => {
 const mountEMMessageListener = () => {
   EMClient.addEventHandler('RECEIVED_NEW_MESSAGE', {
     onTextMessage: (message: EasemobChat.TextMsgBody) => {
-      console.log('onTextMessage', message);
       batchUpdate(message);
     },
   });
