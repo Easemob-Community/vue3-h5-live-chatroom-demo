@@ -18,7 +18,7 @@
 <script setup lang="ts">
 import { ref, watchEffect, onMounted, onUnmounted } from 'vue';
 import { useThrottleFn, useDebounceFn } from '@vueuse/core';
-
+import { showToast } from 'vant';
 import { useRoute } from 'vue-router';
 import DanmakuComp from './components/DanmakuList/index.vue';
 // IM
@@ -54,36 +54,69 @@ const mountEMMessageListener = () => {
     },
   });
 };
-mountEMMessageListener();
+//挂载信令直播间信令监听
+const mountEMSignalingChatroomListener = () => {
+  EMClient.addEventHandler('RECEIVED_NEW_MESSAGE', {
+    onCustomMessage(msg: EasemobChat.CustomMsgBody) {
+      console.log('onCustomMessage', msg);
+    },
+    onCmdMessage(msg: EasemobChat.CmdMsgBody) {
+      console.log('onCmdMessage', msg);
+    },
+  });
+};
 mountEMConnectedListener();
-const joinChatroom = async () => {
+mountEMMessageListener();
+mountEMSignalingChatroomListener();
+//加入互动直播间
+const joinLiveChatroom = async () => {
   try {
-    EMClient.joinChatRoom({
+    await EMClient.joinChatRoom({
       roomId: roomId.value,
-      message: '加入聊天室',
+      message: '互动直播间成功',
+    });
+    showToast({
+      message: '加入直播间成功',
+      duration: 1000,
     });
   } catch (error) {
     console.error('joinChatroom error', error);
   }
 };
+//加入信令直播间
+const joinLiveSignalingChatroom = async () => {
+  try {
+    await EMClient.joinChatRoom({
+      roomId: 'signaling_room_id',
+      message: '加入信令聊天室',
+    });
+  } catch (error) {
+    console.error('joinSignalingRoom error', error);
+  }
+};
+// 环信登录
 const loginIM = async () => {
   try {
     await EMClient.open({
       user: userId.value,
       accessToken: accessToken.value,
     });
-    await joinChatroom();
-    await fetchChatroomMessages();
+    /* 与环信建连成功后所需初始操作 */
+    //加入信令直播间
+    await joinLiveSignalingChatroom();
+    //加入互动直播间
+    await joinLiveChatroom();
+    //获取互动直播间初始弹幕消息
+    await fetchLiveChatroomHistoryMessages();
   } catch (error) {
     console.error('loginIM error', error);
   }
 };
 
 // 可展示消息类型声明
-
 const messageList = ref<EasemobChat.ExcludeAckMessageBody[]>([]);
 // 获取聊天室消息
-const fetchChatroomMessages = async () => {
+const fetchLiveChatroomHistoryMessages = async () => {
   try {
     const res = await EMClient.getHistoryMessages({
       targetId: roomId.value,
@@ -93,7 +126,6 @@ const fetchChatroomMessages = async () => {
     });
     console.log('fetchChatroomMessages', res);
     if (res?.messages?.length > 0) {
-      console.log('res.messages.reverse() as EasemobChat.MessageBody', res.messages.reverse());
       // 展开反转后的消息数组，而不是将数组作为单个元素添加
       messageList.value = [...(res.messages.reverse() as EasemobChat.ExcludeAckMessageBody[]), ...messageList.value];
     }
