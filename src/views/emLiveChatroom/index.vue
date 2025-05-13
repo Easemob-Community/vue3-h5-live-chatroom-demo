@@ -1,5 +1,19 @@
 <template>
   <div>
+    <!-- 模式切换开关 -->
+    <div class="mode-switch-container">
+      <span>大型直播间弹幕策略切换</span>
+      <van-switch
+        v-model="isLargeMode"
+        class="mode-switch"
+        size="24px"
+        active-color="#07c160"
+        inactive-color="#dcdee0"
+        active-text="大型模式"
+        inactive-text="普通模式"
+      />
+    </div>
+
     <!-- 拉流容器 -->
     <div class="live-stream-container">
       <!-- 这里可以放置拉流的视频组件，例如 video 标签 -->
@@ -10,13 +24,14 @@
     <!-- 发送弹幕区域 -->
     <div class="send-danmaku-container">
       <input v-model.trim="messageContent" type="text" placeholder="输入弹幕内容" />
-      <button @click="sendMessage">发送</button>
+      <button v-if="isLargeMode" @click="sendMessageInLargeMode">发送大型直播间</button>
+      <button v-else @click="sendMessage">发送</button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watchEffect, onMounted, onUnmounted } from 'vue';
+import { ref, watchEffect, watch, onMounted, onUnmounted } from 'vue';
 import { useThrottleFn, useDebounceFn } from '@vueuse/core';
 import { showToast } from 'vant';
 import { useRoute } from 'vue-router';
@@ -54,7 +69,7 @@ const mountEMMessageListener = () => {
     },
   });
 };
-//挂载信令直播间信令监听
+// 挂载信令直播间信令监听
 const mountEMSignalingChatroomListener = () => {
   EMClient.addEventHandler('RECEIVED_NEW_MESSAGE', {
     onCustomMessage(msg: EasemobChat.CustomMsgBody) {
@@ -68,7 +83,7 @@ const mountEMSignalingChatroomListener = () => {
 mountEMConnectedListener();
 mountEMMessageListener();
 mountEMSignalingChatroomListener();
-//加入互动直播间
+// 加入互动直播间
 const joinLiveChatroom = async () => {
   try {
     await EMClient.joinChatRoom({
@@ -83,7 +98,7 @@ const joinLiveChatroom = async () => {
     console.error('joinChatroom error', error);
   }
 };
-//加入信令直播间
+// 加入信令直播间
 const joinLiveSignalingChatroom = async () => {
   try {
     await EMClient.joinChatRoom({
@@ -102,11 +117,11 @@ const loginIM = async () => {
       accessToken: accessToken.value,
     });
     /* 与环信建连成功后所需初始操作 */
-    //加入信令直播间
+    // 加入信令直播间
     await joinLiveSignalingChatroom();
-    //加入互动直播间
+    // 加入互动直播间
     await joinLiveChatroom();
-    //获取互动直播间初始弹幕消息
+    // 获取互动直播间初始弹幕消息
     await fetchLiveChatroomHistoryMessages();
   } catch (error) {
     console.error('loginIM error', error);
@@ -167,6 +182,41 @@ const batchUpdate = useThrottleFn((message) => {
   messageList.value.push(message);
 }, 500); // 防抖时间为300毫秒，可根据实际情况调整
 
+/**
+ * 大型直播间模式下的消息处理。
+ * 大型直播间模式下，消息处理逻辑与普通模式不同。
+ * 其会在1分钟才可进行一次有效的消息发送。
+ * 一次有效调用后，剩下的发送调用仅本地展示，不进行实际的消息发送。
+ */
+// 定义一个定时器，用于控制消息发送的频率
+let timer: NodeJS.Timeout | null = null;
+// 定义一个常量，表示消息发送的间隔时间，单位为毫秒
+const MESSAGE_SEND_INTERVAL = 60000; // 1分钟
+// 大型直播间的发送方法调用函数
+const sendMessageInLargeMode = async () => {
+  // 如果定时器不为空，说明上一次发送还未完成，将消息内容push到消息列表中
+  if (timer) {
+    const createTextMsg: EasemobChat.CreateTextMsgParameters = {
+      to: roomId.value,
+      type: 'txt',
+      msg: messageContent.value + '（LocalSend）',
+      chatType: 'chatRoom',
+      from: EMClient.context.userId,
+    };
+    const msg = WebSDK.message.create(createTextMsg);
+    console.log(msg);
+    messageList.value.push(msg as EasemobChat.ExcludeAckMessageBody);
+    messageContent.value = '';
+  }
+  // 如果定时器为空，则本地调用则直接调用sendMessage进行消息发送，并再次开启定时器进行限制。
+  // 注意：此处的sendMessage是复用普通模式下的发送方法调用函数。
+  else if (!timer) {
+    sendMessage();
+    timer = setTimeout(() => {
+      timer = null;
+    }, MESSAGE_SEND_INTERVAL);
+  }
+};
 onMounted(() => {
   loginIM();
 });
@@ -175,6 +225,15 @@ onUnmounted(() => {
   EMClient.close();
   EMClient.removeEventHandler('CONNECTED');
   EMClient.removeEventHandler('RECEIVED_NEW_MESSAGE');
+});
+
+// 新增大型模式状态
+const isLargeMode = ref(false);
+
+// 监听模式变化
+watch(isLargeMode, (newVal) => {
+  // 这里可以添加模式切换后的逻辑
+  console.log(`当前模式: ${newVal ? '大型直播间' : '普通'}`);
 });
 </script>
 
@@ -239,5 +298,15 @@ onUnmounted(() => {
 
 .send-danmaku-container button:hover {
   background-color: #0056b3;
+}
+
+/* 新增模式切换样式 */
+.mode-switch-container {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  color: white;
+  display: flex;
+  align-items: center;
 }
 </style>
