@@ -157,6 +157,9 @@ const sendMessage = useDebounceFn(async () => {
     type: 'txt',
     msg: messageContent.value,
     chatType: 'chatRoom',
+    ext: {
+      nickname:'xxxxx'
+    }
   };
   try {
     const msg = WebSDK.message.create(options);
