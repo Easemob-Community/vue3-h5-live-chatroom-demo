@@ -30,17 +30,17 @@ importers:
         specifier: ^1.11.5
         version: 1.11.9
       easemob-websdk:
-        specifier: ^4.13.0
-        version: 4.13.0
+        specifier: ^4.19.0
+        version: 4.19.0
       good-storage:
         specifier: ^1.1.1
         version: 1.1.1
       gsap:
         specifier: ^3.11.5
         version: 3.12.2
-      loadash:
-        specifier: ^1.0.0
-        version: 1.0.0
+      lodash:
+        specifier: ^4.17.23
+        version: 4.17.23
       number-precision:
         specifier: ^1.5.2
         version: 1.6.0
@@ -1480,8 +1480,8 @@ packages:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
     engines: {node: '>= 0.4'}
 
-  easemob-websdk@4.13.0:
-    resolution: {integrity: sha512-fI+56kkR5MRr1uQU4TEPWM3Qbs36JCyvbXjrIZMboUJxEuVCtIUFYX+E04/HiUNMjF1qXHGTQpB807h+JTg63w==}
+  easemob-websdk@4.19.0:
+    resolution: {integrity: sha512-evlv3SNrHrGDi//54n1atdqPBpYhid/cgyKx/qDml4zdeAojdbks3qItWG/3ye35NsukKN+zgMRM1SYE+Jxv6A==}
 
   ejs@3.1.9:
     resolution: {integrity: sha512-rC+QVNMJWv+MtPgkt0y+0rVEIdbtxVADApW9JXrUVlzHetgcyczP/E7DJmWJ4fJCZF2cPcBk0laWO9ZHMG3DmQ==}
@@ -1953,10 +1953,6 @@ packages:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
 
-  loadash@1.0.0:
-    resolution: {integrity: sha512-xlX5HBsXB3KG0FJbJJG/3kYWCfsCyCSus3T+uHVu6QL6YxAdggmm3QeyLgn54N2yi5/UE6xxL5ZWJAAiHzHYEg==}
-    deprecated: Package is unsupport. Please use the lodash package instead.
-
   local-pkg@0.4.3:
     resolution: {integrity: sha512-SFppqq5p42fe2qcZQqqEOiVRXl+WCP1MdT6k7BDEW1j++sp5fIY+/fdRQitvKgB5BrBcmrs5m/L0v2FrU5MY1g==}
     engines: {node: '>=14'}
@@ -1971,8 +1967,8 @@ packages:
   lodash.merge@4.6.2:
     resolution: {integrity: sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==}
 
-  lodash@4.17.21:
-    resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
+  lodash@4.17.23:
+    resolution: {integrity: sha512-LgVTMpQtIopCi79SJeDiP0TfWi5CNEc/L/aRdTh3yIvmZXTnheWpKjSZhnvMl8iXbC1tFg9gdHHDMLoV7CnG+w==}
 
   lower-case@2.0.2:
     resolution: {integrity: sha512-7fm3l3NAF9WfN6W3JOmf5drwpVqX78JtoGJ3A6W0a6ZnldM41w2fV5D490psKFTpMds8TJse/eHLFFsNHHjHgg==}
@@ -4172,7 +4168,7 @@ snapshots:
       es-errors: 1.3.0
       gopd: 1.2.0
 
-  easemob-websdk@4.13.0: {}
+  easemob-websdk@4.19.0: {}
 
   ejs@3.1.9:
     dependencies:
@@ -4668,8 +4664,6 @@ snapshots:
       prelude-ls: 1.2.1
       type-check: 0.4.0
 
-  loadash@1.0.0: {}
-
   local-pkg@0.4.3: {}
 
   locate-path@6.0.0:
@@ -4680,7 +4674,7 @@ snapshots:
 
   lodash.merge@4.6.2: {}
 
-  lodash@4.17.21: {}
+  lodash@4.17.23: {}
 
   lower-case@2.0.2:
     dependencies:
@@ -5287,7 +5281,7 @@ snapshots:
       eslint-visitor-keys: 3.4.3
       espree: 9.6.1
       esquery: 1.5.0
-      lodash: 4.17.21
+      lodash: 4.17.23
       semver: 7.5.4
     transitivePeerDependencies:
       - supports-color
