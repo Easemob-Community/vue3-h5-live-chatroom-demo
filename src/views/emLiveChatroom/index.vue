@@ -12,15 +12,22 @@
       <DanmakuComp :message-list="messageList" />
     </template>
 
-    <!-- 控制层插槽 -->
-    <template #control>
+    <!-- 顶部控制层插槽 -->
+    <template #control-top>
+      <!-- 角色标识 -->
+      <div class="role-badge" :class="rtcRole === 'host' ? 'host' : 'audience'">
+        {{ rtcRole === 'host' ? '主播' : '观众' }}
+      </div>
       <!-- 模式切换开关 -->
       <div class="mode-switch-container">
         <span>大型直播间弹幕策略切换</span>
         <van-switch v-model="isLargeMode" class="mode-switch" size="24px" active-color="#07c160"
           inactive-color="#dcdee0" active-text="大型模式" inactive-text="普通模式" />
       </div>
+    </template>
 
+    <!-- 底部控制层插槽 -->
+    <template #control>
       <!-- 发送弹幕区域 -->
       <div class="send-danmaku-container">
         <input v-model.trim="messageContent" type="text" placeholder="输入弹幕内容" />
@@ -38,19 +45,21 @@ import { showToast } from 'vant';
 import DanmakuComp from './components/DanmakuList/index.vue';
 import LiveRTC from './components/LiveRTC/index.vue';
 import LiveContainer from './components/LiveContainer/index.vue';
+import type { LiveRtcExpose } from './components/LiveRTC/types';
 // IM
 import { WebSDK, EMClient, EasemobChat } from '@/easeim';
+
 // 直播间配置
-import { getCurrentLiveChatroomConfig } from '@/constants';
+import { liveChatroomConfig } from '@/constants';
 
 // 组件引用
 const containerRef = ref<InstanceType<typeof LiveContainer> | null>(null)
-const rtcRef = ref<InstanceType<typeof LiveRTC> | null>(null)
+const rtcRef = ref<LiveRtcExpose | null>(null)
 
 // 配置和状态
-const liveConfig = getCurrentLiveChatroomConfig();
+const liveConfig = liveChatroomConfig;
 const showStatus = ref(true)
-const rtcRole = ref<'host' | 'audience'>('audience')
+const rtcRole = ref<'host' | 'audience'>('host')
 
 // 从配置中提取必要的参数
 const userId = ref<string>(liveConfig.user.userId);
@@ -97,6 +106,12 @@ const mountEMConnectedListener = () => {
   EMClient.addEventHandler('CONNECTED', {
     onConnected: async () => {
       console.log('im connected');
+      // IM连接成功后，初始化RTC（需要IM连接后才能安全获取Token）
+      await rtcRef.value?.initRTC()
+
+      // 初始化成功后，加入RTC频道
+      await rtcRef.value?.joinChannel()
+
       // 更新容器状态
       containerRef.value?.updateImStatus({
         connected: true,
@@ -156,6 +171,10 @@ const joinLiveSignalingChatroom = async () => {
     await EMClient.joinChatRoom({
       roomId: signalingRoomId.value,
       message: '加入信令聊天室',
+    });
+    showToast({
+      message: '加入信令聊天室成功',
+      duration: 1000,
     });
   } catch (error) {
     console.error('joinSignalingRoom error', error);
@@ -303,10 +322,32 @@ watch(isLargeMode, (newVal) => {
 
 <style scoped>
 /* 模式切换开关样式 */
+/* 角色标识 */
+.role-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+  color: white;
+  z-index: 111;
+}
+
+.role-badge.host {
+  background-color: #ff4444;
+}
+
+.role-badge.audience {
+  background-color: #4488ff;
+}
+
 .mode-switch-container {
   position: absolute;
   top: 10px;
   right: 10px;
+  margin: 0;
   color: white;
   display: flex;
   align-items: center;

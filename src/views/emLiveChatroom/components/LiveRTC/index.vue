@@ -1,14 +1,23 @@
 <template>
   <div class="live-rtc-container">
-    <!-- 本地视频预览 -->
-    <div v-if="localVideoTrack" class="local-video-wrapper">
-      <video ref="localVideoRef" class="local-video" autoplay muted></video>
+    <!-- 主播：本地视频预览（大画面） -->
+    <div v-if="isHost && localVideoTrack" class="host-video-wrapper">
+      <video ref="localVideoRef" class="host-video" autoplay muted playsinline></video>
     </div>
 
-    <!-- 远程视频容器 -->
-    <div class="remote-videos-container">
-      <div v-for="user in remoteUsers" :key="user.uid" class="remote-video-wrapper">
-        <video :ref="el => setRemoteVideoRef(user.uid, el as HTMLVideoElement)" class="remote-video" autoplay></video>
+    <!-- 主播：小窗预览远程观众（可选） -->
+    <div v-if="isHost && remoteUsers.length > 0" class="remote-videos-container host-remote">
+      <div v-for="user in remoteUsers" :key="user.uid" class="remote-video-wrapper small">
+        <video :ref="el => setRemoteVideoRef(user.uid, el as HTMLVideoElement)" class="remote-video" autoplay
+          playsinline></video>
+      </div>
+    </div>
+
+    <!-- 观众：远程视频容器（大画面看主播） -->
+    <div v-if="!isHost" class="remote-videos-container audience-remote">
+      <div v-for="user in remoteUsers" :key="user.uid" class="remote-video-wrapper large">
+        <video :ref="el => setRemoteVideoRef(user.uid, el as HTMLVideoElement)" class="remote-video" autoplay
+          playsinline></video>
       </div>
     </div>
 
@@ -26,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, watch, computed, nextTick } from 'vue'
 import { LiveRTC } from '@/easeim/live-rtc'
 import { EMClient } from '@/easeim'
 import type { ClientRole } from 'agora-rtc-sdk-ng'
@@ -42,6 +51,9 @@ const props = withDefaults(defineProps<LiveRtcProps>(), {
 
 const emit = defineEmits<LiveRtcEmits>()
 
+// 计算属性：是否为主播
+const isHost = computed(() => props.role === 'host')
+
 // 组件状态
 const state = reactive<RtcState>({
   joined: false,
@@ -53,7 +65,7 @@ const state = reactive<RtcState>({
 })
 
 // RTC实例
-const liveRTC = new LiveRTC(EMClient)
+const liveRTC = new LiveRTC(props.channelName as string)
 
 // 视频引用
 const localVideoRef = ref<HTMLVideoElement | null>(null)
@@ -79,7 +91,16 @@ const setRemoteVideoRef = (uid: string, el: HTMLVideoElement | null) => {
 const initRTC = async () => {
   try {
     await liveRTC.initRTC(props.role)
-    console.log('RTC初始化成功')
+    console.log('RTC初始化成功，角色:', props.role)
+
+    // 如果是主播，获取本地视频轨道并准备播放
+    if (isHost.value) {
+      const track = liveRTC.getLocalVideoTrack()
+      if (track) {
+        localVideoTrack.value = track
+        console.log('主播本地视频轨道已创建')
+      }
+    }
   } catch (error) {
     handleError(error as Error)
   }
@@ -99,17 +120,36 @@ const joinChannel = async () => {
       throw new Error('获取RTC Token失败')
     }
 
-    // 生成随机UID（实际项目中应该从服务端获取）
-    const uid = Math.floor(Math.random() * 1000000).toString()
+    // 加入频道，使用 callback 在加入成功后发布流
+    await liveRTC.joinRTC(async () => {
+      state.joined = true
+      state.channelId = props.channelName
+      state.localUid = liveRTC.agoraUid
 
-    // 加入频道
-    await liveRTC.joinRTC(props.channelName, uid, token)
-    state.joined = true
-    state.channelId = props.channelName
-    state.localUid = uid
+      // 如果是主播，先发布流，再播放本地视频
+      if (isHost.value) {
+        // 发布本地音视频流
+        await liveRTC.publishLocalTracks()
 
-    emit('joined', props.channelName, uid)
-    console.log('成功加入RTC频道:', props.channelName)
+        // 播放本地视频预览
+        await nextTick()
+        setTimeout(() => {
+          if (localVideoRef.value && localVideoTrack.value) {
+            liveRTC.playLocalVideo(localVideoRef.value)
+            console.log('主播本地视频开始播放', localVideoRef.value)
+          } else {
+            console.warn('视频元素或轨道未就绪', {
+              videoEl: localVideoRef.value,
+              track: localVideoTrack.value
+            })
+          }
+        }, 200)
+      }
+
+      const uid = liveRTC.agoraUid || ''
+      emit('joined', props.channelName, uid)
+      console.log('成功加入RTC频道:', props.channelName, '角色:', props.role, 'UID:', uid)
+    })
 
   } catch (error) {
     handleError(error as Error)
@@ -203,9 +243,6 @@ const handleUserUnpublished = (user: any, mediaType: 'audio' | 'video') => {
 // 组件挂载
 onMounted(async () => {
   try {
-    // 初始化RTC
-    await initRTC()
-
     // 设置事件监听
     const client = liveRTC.getClient()
     if (client) {
@@ -213,10 +250,8 @@ onMounted(async () => {
       client.on('user-unpublished', handleUserUnpublished)
     }
 
-    // 自动加入频道
-    if (props.autoJoin) {
-      await joinChannel()
-    }
+    // 注意：RTC初始化现在由父组件在IM连接成功后调用
+    // 自动加入频道也在初始化后由父组件控制
   } catch (error) {
     handleError(error as Error)
   }
@@ -242,8 +277,18 @@ watch(() => props.channelName, async (newChannel) => {
   }
 })
 
+// 监听本地视频轨道变化，当轨道就绪且视频元素存在时自动播放
+watch(localVideoTrack, async (track) => {
+  if (track && isHost.value && localVideoRef.value && state.joined) {
+    await nextTick()
+    liveRTC.playLocalVideo(localVideoRef.value)
+    console.log('监听到轨道变化，开始播放本地视频')
+  }
+})
+
 // 暴露方法给父组件
 defineExpose({
+  initRTC,
   joinChannel,
   leaveChannel,
   getState: () => ({ ...state })
@@ -259,41 +304,65 @@ defineExpose({
   overflow: hidden;
 }
 
-.local-video-wrapper {
+/* 主播：本地视频大画面 */
+.host-video-wrapper {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 120px;
-  height: 90px;
-  z-index: 15;
-  border: 2px solid #fff;
-  border-radius: 8px;
-  overflow: hidden;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  background-color: #000;
 }
 
-.local-video {
+.host-video {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
+  min-width: 100px;
+  min-height: 100px;
 }
 
-.remote-videos-container {
-  width: 100%;
-  height: 100%;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 10px;
-  padding: 10px;
-  box-sizing: border-box;
+/* 主播：远程观众小窗 */
+.remote-videos-container.host-remote {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 200px;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 20;
 }
 
-.remote-video-wrapper {
-  position: relative;
+.remote-video-wrapper.small {
   width: 100%;
-  height: 100%;
+  height: 120px;
   background-color: #333;
   border-radius: 8px;
   overflow: hidden;
+  border: 2px solid #fff;
+}
+
+/* 观众：远程视频大画面 */
+.remote-videos-container.audience-remote {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+}
+
+.remote-video-wrapper.large {
+  width: 100%;
+  height: 100%;
+  background-color: #333;
 }
 
 .remote-video {

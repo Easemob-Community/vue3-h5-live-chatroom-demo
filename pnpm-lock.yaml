@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  needle@3.2.0:
+    hash: 793d1ff8b16808b95ecad465db9bf6ec0427683011c2395ac54720a042b96fd2
+    path: patches/needle@3.2.0.patch
+
 importers:
 
   .:
@@ -86,13 +91,13 @@ importers:
         version: 5.62.0(eslint@8.49.0)(typescript@4.9.5)
       '@vitejs/plugin-legacy':
         specifier: ^4.0.2
-        version: 4.1.1(terser@5.19.4)(vite@4.4.9(@types/node@18.17.16)(less@4.2.0)(terser@5.19.4))
+        version: 4.1.1(terser@5.19.4)(vite@4.4.9(@types/node@18.17.16)(less@4.5.1)(terser@5.19.4))
       '@vitejs/plugin-vue':
         specifier: ^4.1.0
-        version: 4.3.4(vite@4.4.9(@types/node@18.17.16)(less@4.2.0)(terser@5.19.4))(vue@3.3.4)
+        version: 4.3.4(vite@4.4.9(@types/node@18.17.16)(less@4.5.1)(terser@5.19.4))(vue@3.3.4)
       '@vitejs/plugin-vue-jsx':
         specifier: ^3.0.1
-        version: 3.0.2(vite@4.4.9(@types/node@18.17.16)(less@4.2.0)(terser@5.19.4))(vue@3.3.4)
+        version: 3.0.2(vite@4.4.9(@types/node@18.17.16)(less@4.5.1)(terser@5.19.4))(vue@3.3.4)
       '@vue/eslint-config-typescript':
         specifier: ^11.0.0
         version: 11.0.3(eslint-plugin-vue@9.17.0(eslint@8.49.0))(eslint@8.49.0)(typescript@4.9.5)
@@ -112,8 +117,8 @@ importers:
         specifier: ^9.3.0
         version: 9.17.0(eslint@8.49.0)
       less:
-        specifier: ^4.1.3
-        version: 4.2.0
+        specifier: ^4.5.1
+        version: 4.5.1
       postcss:
         specifier: ^8.4.16
         version: 8.4.29
@@ -134,10 +139,10 @@ importers:
         version: 0.22.12(@babel/parser@7.22.16)(rollup@3.29.1)(vue@3.3.4)
       vite:
         specifier: ^4.2.1
-        version: 4.4.9(@types/node@18.17.16)(less@4.2.0)(terser@5.19.4)
+        version: 4.4.9(@types/node@18.17.16)(less@4.5.1)(terser@5.19.4)
       vite-plugin-html:
         specifier: ^3.2.0
-        version: 3.2.0(vite@4.4.9(@types/node@18.17.16)(less@4.2.0)(terser@5.19.4))
+        version: 3.2.0(vite@4.4.9(@types/node@18.17.16)(less@4.5.1)(terser@5.19.4))
       vue-eslint-parser:
         specifier: ^9.0.3
         version: 9.3.1(eslint@8.49.0)
@@ -1944,9 +1949,9 @@ packages:
   keyv@4.5.3:
     resolution: {integrity: sha512-QCiSav9WaX1PgETJ+SpNnx2PRRapJ/oRSXM4VO5OGYGSjrxbKPVFVhB3l2OCbLCk329N8qyAtsJjSjvVBWzEug==}
 
-  less@4.2.0:
-    resolution: {integrity: sha512-P3b3HJDBtSzsXUl0im2L7gTO5Ubg8mEN6G8qoTS77iXxXX4Hvu4Qj540PZDvQ8V6DmX6iXo98k7Md0Cm1PrLaA==}
-    engines: {node: '>=6'}
+  less@4.5.1:
+    resolution: {integrity: sha512-UKgI3/KON4u6ngSsnDADsUERqhZknsVZbnuzlRZXLQCmfC/MDld42fTydUE9B+Mla1AL6SJ/Pp6SlEFi/AVGfw==}
+    engines: {node: '>=14'}
     hasBin: true
 
   levn@0.4.1:
@@ -3667,7 +3672,7 @@ snapshots:
     dependencies:
       vue: 3.3.4
 
-  '@vitejs/plugin-legacy@4.1.1(terser@5.19.4)(vite@4.4.9(@types/node@18.17.16)(less@4.2.0)(terser@5.19.4))':
+  '@vitejs/plugin-legacy@4.1.1(terser@5.19.4)(vite@4.4.9(@types/node@18.17.16)(less@4.5.1)(terser@5.19.4))':
     dependencies:
       '@babel/core': 7.22.19
       '@babel/preset-env': 7.22.15(@babel/core@7.22.19)
@@ -3677,23 +3682,23 @@ snapshots:
       regenerator-runtime: 0.13.11
       systemjs: 6.14.2
       terser: 5.19.4
-      vite: 4.4.9(@types/node@18.17.16)(less@4.2.0)(terser@5.19.4)
+      vite: 4.4.9(@types/node@18.17.16)(less@4.5.1)(terser@5.19.4)
     transitivePeerDependencies:
       - supports-color
 
-  '@vitejs/plugin-vue-jsx@3.0.2(vite@4.4.9(@types/node@18.17.16)(less@4.2.0)(terser@5.19.4))(vue@3.3.4)':
+  '@vitejs/plugin-vue-jsx@3.0.2(vite@4.4.9(@types/node@18.17.16)(less@4.5.1)(terser@5.19.4))(vue@3.3.4)':
     dependencies:
       '@babel/core': 7.22.19
       '@babel/plugin-transform-typescript': 7.22.15(@babel/core@7.22.19)
       '@vue/babel-plugin-jsx': 1.1.5(@babel/core@7.22.19)
-      vite: 4.4.9(@types/node@18.17.16)(less@4.2.0)(terser@5.19.4)
+      vite: 4.4.9(@types/node@18.17.16)(less@4.5.1)(terser@5.19.4)
       vue: 3.3.4
     transitivePeerDependencies:
       - supports-color
 
-  '@vitejs/plugin-vue@4.3.4(vite@4.4.9(@types/node@18.17.16)(less@4.2.0)(terser@5.19.4))(vue@3.3.4)':
+  '@vitejs/plugin-vue@4.3.4(vite@4.4.9(@types/node@18.17.16)(less@4.5.1)(terser@5.19.4))(vue@3.3.4)':
     dependencies:
-      vite: 4.4.9(@types/node@18.17.16)(less@4.2.0)(terser@5.19.4)
+      vite: 4.4.9(@types/node@18.17.16)(less@4.5.1)(terser@5.19.4)
       vue: 3.3.4
 
   '@volar/code-gen@0.31.4':
@@ -4643,7 +4648,7 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  less@4.2.0:
+  less@4.5.1:
     dependencies:
       copy-anything: 2.0.6
       parse-node-version: 1.0.1
@@ -4654,7 +4659,7 @@ snapshots:
       image-size: 0.5.5
       make-dir: 2.1.0
       mime: 1.6.0
-      needle: 3.2.0
+      needle: 3.2.0(patch_hash=793d1ff8b16808b95ecad465db9bf6ec0427683011c2395ac54720a042b96fd2)
       source-map: 0.6.1
     transitivePeerDependencies:
       - supports-color
@@ -4741,7 +4746,7 @@ snapshots:
 
   natural-compare@1.4.0: {}
 
-  needle@3.2.0:
+  needle@3.2.0(patch_hash=793d1ff8b16808b95ecad465db9bf6ec0427683011c2395ac54720a042b96fd2):
     dependencies:
       debug: 3.2.7
       iconv-lite: 0.6.3
@@ -5161,7 +5166,7 @@ snapshots:
       '@vue/shared': 3.3.4
       vue: 3.3.4
 
-  vite-plugin-html@3.2.0(vite@4.4.9(@types/node@18.17.16)(less@4.2.0)(terser@5.19.4)):
+  vite-plugin-html@3.2.0(vite@4.4.9(@types/node@18.17.16)(less@4.5.1)(terser@5.19.4)):
     dependencies:
       '@rollup/pluginutils': 4.2.1
       colorette: 2.0.20
@@ -5175,9 +5180,9 @@ snapshots:
       html-minifier-terser: 6.1.0
       node-html-parser: 5.4.2
       pathe: 0.2.0
-      vite: 4.4.9(@types/node@18.17.16)(less@4.2.0)(terser@5.19.4)
+      vite: 4.4.9(@types/node@18.17.16)(less@4.5.1)(terser@5.19.4)
 
-  vite@4.4.9(@types/node@18.17.16)(less@4.2.0)(terser@5.19.4):
+  vite@4.4.9(@types/node@18.17.16)(less@4.5.1)(terser@5.19.4):
     dependencies:
       esbuild: 0.18.20
       postcss: 8.4.29
@@ -5185,7 +5190,7 @@ snapshots:
     optionalDependencies:
       '@types/node': 18.17.16
       fsevents: 2.3.3
-      less: 4.2.0
+      less: 4.5.1
       terser: 5.19.4
 
   void-elements@3.1.0: {}

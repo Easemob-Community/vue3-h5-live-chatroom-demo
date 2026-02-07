@@ -71,3 +71,24 @@ export interface RtcState {
   /** 错误信息 */
   error: string | null
 }
+
+/**
+ * LiveRTC组件暴露的方法
+ */
+export interface LiveRtcExpose {
+  /** 初始化RTC客户端 */
+  initRTC: () => Promise<void>
+  /** 加入RTC频道 */
+  joinChannel: () => Promise<void>
+  /** 离开RTC频道 */
+  leaveChannel: () => Promise<void>
+  /** 获取RTC状态 */
+  getState: () => {
+    joined: boolean
+    channelId: string | null
+    localUid: string | null
+    remoteUsers: RtcUser[]
+    joining: boolean
+    error: string | null
+  }
+}

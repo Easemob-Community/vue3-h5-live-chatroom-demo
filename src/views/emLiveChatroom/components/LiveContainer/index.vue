@@ -10,12 +10,17 @@
       <slot name="danmaku"></slot>
     </div>
 
-    <!-- 顶层：控制层 -->
+    <!-- 控制层：顶部 -->
+    <div class="control-layer-top">
+      <slot name="control-top"></slot>
+    </div>
+
+    <!-- 控制层：底部 -->
     <div class="control-layer">
       <slot name="control"></slot>
     </div>
 
-    <!-- 全局状态显示 -->
+    <!-- 全局状态显示 - 移至顶部控制层内部避免覆盖 -->
     <div v-if="showStatus" class="status-overlay">
       <div class="status-info">
         <div v-if="rtcStatus" class="status-item">
@@ -111,7 +116,24 @@ defineExpose({
   /* 不阻挡底层交互 */
 }
 
-/* 控制层 - 顶层 */
+/* 控制层 - 顶部 */
+.control-layer-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 110;
+  pointer-events: none;
+  /* 默认不阻挡交互，子元素可单独开启 */
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.control-layer-top>* {
+  pointer-events: auto;
+}
+
+/* 控制层 - 底部 */
 .control-layer {
   position: absolute;
   bottom: 0;
@@ -122,17 +144,18 @@ defineExpose({
   /* 允许交互 */
 }
 
-/* 状态显示层 */
+/* 状态显示层 - 放在左上角，确保不被顶部控制层覆盖 */
 .status-overlay {
   position: absolute;
-  top: 10px;
+  top: 50px;
   left: 10px;
-  z-index: 50;
+  z-index: 120;
   background-color: rgba(0, 0, 0, 0.7);
-  padding: 10px;
+  padding: 8px 12px;
   border-radius: 8px;
   color: white;
   font-size: 12px;
+  pointer-events: none;
 }
 
 .status-info {
