@@ -12,30 +12,32 @@
 
     <!-- 控制层：顶部 -->
     <div class="control-layer-top">
-      <slot name="control-top"></slot>
+      <!-- 顶部操作栏 -->
+      <div class="top-actions">
+        <slot name="control-top"></slot>
+      </div>
+      <!-- 状态信息栏 - 与操作栏在同一容器但另起一行 -->
+      <div v-if="showStatus" class="status-bar">
+        <div class="status-info">
+          <div v-if="rtcStatus" class="status-item">
+            <span class="status-label">RTC:</span>
+            <span :class="['status-value', rtcStatus.joined ? 'connected' : 'disconnected']">
+              {{ rtcStatus.joined ? '已连接' : '未连接' }}
+            </span>
+          </div>
+          <div v-if="imStatus" class="status-item">
+            <span class="status-label">IM:</span>
+            <span :class="['status-value', imStatus.connected ? 'connected' : 'disconnected']">
+              {{ imStatus.connected ? '已连接' : '未连接' }}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 控制层：底部 -->
     <div class="control-layer">
       <slot name="control"></slot>
-    </div>
-
-    <!-- 全局状态显示 - 移至顶部控制层内部避免覆盖 -->
-    <div v-if="showStatus" class="status-overlay">
-      <div class="status-info">
-        <div v-if="rtcStatus" class="status-item">
-          <span class="status-label">RTC:</span>
-          <span :class="['status-value', rtcStatus.joined ? 'connected' : 'disconnected']">
-            {{ rtcStatus.joined ? '已连接' : '未连接' }}
-          </span>
-        </div>
-        <div v-if="imStatus" class="status-item">
-          <span class="status-label">IM:</span>
-          <span :class="['status-value', imStatus.connected ? 'connected' : 'disconnected']">
-            {{ imStatus.connected ? '已连接' : '未连接' }}
-          </span>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -125,12 +127,35 @@ defineExpose({
   z-index: 110;
   pointer-events: none;
   /* 默认不阻挡交互，子元素可单独开启 */
-  padding: 10px;
-  box-sizing: border-box;
 }
 
-.control-layer-top>* {
+/* 顶部操作栏 */
+.top-actions {
+  position: relative;
+  width: 100%;
+  padding: 10px;
+  box-sizing: border-box;
   pointer-events: auto;
+}
+
+/* 状态信息栏 - 与操作栏在同一容器但另起一行 */
+.status-bar {
+  width: 100%;
+  padding: 0 10px 10px;
+  box-sizing: border-box;
+  pointer-events: auto;
+  margin-top: 10%;
+}
+
+.status-bar .status-info {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 5px;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: white;
+  font-size: 12px;
 }
 
 /* 控制层 - 底部 */
@@ -142,26 +167,6 @@ defineExpose({
   z-index: 100;
   pointer-events: auto;
   /* 允许交互 */
-}
-
-/* 状态显示层 - 放在左上角，确保不被顶部控制层覆盖 */
-.status-overlay {
-  position: absolute;
-  top: 50px;
-  left: 10px;
-  z-index: 120;
-  background-color: rgba(0, 0, 0, 0.7);
-  padding: 8px 12px;
-  border-radius: 8px;
-  color: white;
-  font-size: 12px;
-  pointer-events: none;
-}
-
-.status-info {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
 }
 
 .status-item {
@@ -192,10 +197,16 @@ defineExpose({
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .status-overlay {
-    top: 5px;
-    left: 5px;
+  .top-actions {
     padding: 8px;
+  }
+
+  .status-bar {
+    padding: 0 8px 8px;
+  }
+
+  .status-bar .status-info {
+    padding: 6px 10px;
     font-size: 10px;
   }
 

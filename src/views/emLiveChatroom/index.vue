@@ -14,15 +14,21 @@
 
     <!-- 顶部控制层插槽 -->
     <template #control-top>
+      <!-- 返回首页按钮 -->
+      <div class="home-btn" @click="goToHome">
+        <van-icon name="wap-home-o" size="20" />
+      </div>
       <!-- 角色标识 -->
       <div class="role-badge" :class="rtcRole === 'host' ? 'host' : 'audience'">
         {{ rtcRole === 'host' ? '主播' : '观众' }}
       </div>
-      <!-- 模式切换开关 -->
-      <div class="mode-switch-container">
-        <span>大型直播间弹幕策略切换</span>
-        <van-switch v-model="isLargeMode" class="mode-switch" size="24px" active-color="#07c160"
-          inactive-color="#dcdee0" active-text="大型模式" inactive-text="普通模式" />
+      <!-- 大型模式标识 -->
+      <div v-if="isLargeMode" class="mode-badge">
+        大型模式
+      </div>
+      <!-- 修改配置按钮 -->
+      <div class="config-btn" @click="goToConfig">
+        <van-icon name="setting-o" size="20" />
       </div>
     </template>
 
@@ -40,6 +46,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { useThrottleFn, useDebounceFn } from '@vueuse/core';
 import { showToast } from 'vant';
 import DanmakuComp from './components/DanmakuList/index.vue';
@@ -52,14 +59,52 @@ import { WebSDK, EMClient, EasemobChat } from '@/easeim';
 // 直播间配置
 import { liveChatroomConfig } from '@/constants';
 
+const router = useRouter();
+
+// 本地存储key
+const STORAGE_KEY = 'live_chatroom_config';
+
+// 加载配置（优先从localStorage读取）
+const loadConfig = () => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (error) {
+    console.error('读取本地配置失败', error);
+  }
+  return null;
+};
+
+// 合并配置
+const savedConfig = loadConfig();
+const liveConfig = {
+  user: {
+    userId: savedConfig?.userId || liveChatroomConfig.user.userId,
+    password: savedConfig?.password || liveChatroomConfig.user.password,
+    accessToken: savedConfig?.accessToken || liveChatroomConfig.user.accessToken,
+  },
+  chatrooms: {
+    signaling: {
+      roomId: savedConfig?.signalingRoomId || liveChatroomConfig.chatrooms.signaling.roomId,
+    },
+    interactive: {
+      roomId: savedConfig?.interactiveRoomId || liveChatroomConfig.chatrooms.interactive.roomId,
+    },
+  },
+  rtc: {
+    channelName: savedConfig?.channelName || liveChatroomConfig.rtc.channelName,
+  },
+};
+
 // 组件引用
 const containerRef = ref<InstanceType<typeof LiveContainer> | null>(null)
 const rtcRef = ref<LiveRtcExpose | null>(null)
 
 // 配置和状态
-const liveConfig = liveChatroomConfig;
 const showStatus = ref(true)
-const rtcRole = ref<'host' | 'audience'>('host')
+const rtcRole = ref<'host' | 'audience'>(savedConfig?.role || 'host')
 
 // 从配置中提取必要的参数
 const userId = ref<string>(liveConfig.user.userId);
@@ -310,23 +355,56 @@ onUnmounted(() => {
   EMClient.removeEventHandler('RECEIVED_NEW_MESSAGE');
 });
 
-// 新增大型模式状态
-const isLargeMode = ref(false);
+// 新增大型模式状态（从配置读取）
+const isLargeMode = ref(savedConfig?.isLargeMode || false);
 
 // 监听模式变化
 watch(isLargeMode, (newVal) => {
   // 这里可以添加模式切换后的逻辑
   console.log(`当前模式: ${newVal ? '大型直播间' : '普通'}`);
 });
+
+// 跳转到配置页面
+const goToConfig = () => {
+  router.push('/im/livechatroom');
+};
+
+// 返回首页
+const goToHome = () => {
+  router.push('/home');
+};
 </script>
 
 <style scoped>
 /* 模式切换开关样式 */
+/* 返回首页按钮 */
+.home-btn {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  z-index: 111;
+  transition: background-color 0.2s;
+  pointer-events: auto;
+}
+
+.home-btn:active {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
 /* 角色标识 */
 .role-badge {
   position: absolute;
   top: 10px;
-  left: 10px;
+  left: 55px;
   padding: 6px 12px;
   border-radius: 4px;
   font-size: 14px;
@@ -341,6 +419,42 @@ watch(isLargeMode, (newVal) => {
 
 .role-badge.audience {
   background-color: #4488ff;
+}
+
+/* 配置按钮 */
+.config-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  z-index: 111;
+  transition: background-color 0.2s;
+  pointer-events: auto;
+}
+
+.config-btn:active {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+/* 大型模式标识 */
+.mode-badge {
+  position: absolute;
+  top: 10px;
+  right: 55px;
+  padding: 6px 12px;
+  background-color: #07c160;
+  color: white;
+  font-size: 12px;
+  border-radius: 12px;
+  z-index: 111;
 }
 
 .mode-switch-container {
