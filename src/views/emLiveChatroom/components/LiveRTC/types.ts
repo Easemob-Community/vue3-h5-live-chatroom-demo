@@ -1,25 +1,25 @@
-import type { ClientRole } from 'agora-rtc-sdk-ng'
+import type { ClientRole } from 'agora-rtc-sdk-ng';
 
 /**
  * RTC组件属性配置
  */
 export interface LiveRtcProps {
   /** RTC频道名称 */
-  channelName: string
+  channelName: string;
   /** 用户ID */
-  userId: string
+  userId: string;
   /** Agora App ID */
-  appId?: string
+  appId?: string;
   /** RTC Token */
-  token?: string
+  token?: string;
   /** 客户端角色 */
-  role?: ClientRole
+  role?: ClientRole;
   /** 是否自动加入频道 */
-  autoJoin?: boolean
+  autoJoin?: boolean;
   /** 视频是否启用 */
-  videoEnabled?: boolean
+  videoEnabled?: boolean;
   /** 音频是否启用 */
-  audioEnabled?: boolean
+  audioEnabled?: boolean;
 }
 
 /**
@@ -27,15 +27,13 @@ export interface LiveRtcProps {
  */
 export interface LiveRtcEmits {
   /** 加入频道成功 */
-  (e: 'joined', channelId: string, uid: string): void
+  (e: 'joined', channelId: string, uid: number): void;
   /** 离开频道 */
-  (e: 'left'): void
+  (e: 'left'): void;
   /** 错误事件 */
-  (e: 'error', error: Error): void
-  /** 用户发布流 */
-  (e: 'user-published', user: any, mediaType: 'audio' | 'video'): void
-  /** 用户取消发布流 */
-  (e: 'user-unpublished', user: any, mediaType: 'audio' | 'video'): void
+  (e: 'error', error: Error): void;
+  /** 用户发布流或取消发布流 */
+  (e: 'userPublished' | 'userUnpublished', user: any, mediaType: 'audio' | 'video'): void;
 }
 
 /**
@@ -43,15 +41,15 @@ export interface LiveRtcEmits {
  */
 export interface RtcUser {
   /** 用户UID */
-  uid: string
+  uid: string;
   /** 是否已发布音频 */
-  hasAudio: boolean
+  hasAudio: boolean;
   /** 是否已发布视频 */
-  hasVideo: boolean
+  hasVideo: boolean;
   /** 音频轨道 */
-  audioTrack?: any
+  audioTrack?: any;
   /** 视频轨道 */
-  videoTrack?: any
+  videoTrack?: any;
 }
 
 /**
@@ -59,17 +57,17 @@ export interface RtcUser {
  */
 export interface RtcState {
   /** 是否已加入频道 */
-  joined: boolean
+  joined: boolean;
   /** 当前频道ID */
-  channelId: string | null
+  channelId: string | null;
   /** 本地用户ID */
-  localUid: string | null
+  localUid: number | null;
   /** 远程用户列表 */
-  remoteUsers: RtcUser[]
+  remoteUsers: RtcUser[];
   /** 是否正在加入 */
-  joining: boolean
+  joining: boolean;
   /** 错误信息 */
-  error: string | null
+  error: string | null;
 }
 
 /**
@@ -77,18 +75,18 @@ export interface RtcState {
  */
 export interface LiveRtcExpose {
   /** 初始化RTC客户端 */
-  initRTC: () => Promise<void>
+  initRTC: () => Promise<void>;
   /** 加入RTC频道 */
-  joinChannel: () => Promise<void>
+  joinChannel: () => Promise<void>;
   /** 离开RTC频道 */
-  leaveChannel: () => Promise<void>
+  leaveChannel: () => Promise<void>;
   /** 获取RTC状态 */
   getState: () => {
-    joined: boolean
-    channelId: string | null
-    localUid: string | null
-    remoteUsers: RtcUser[]
-    joining: boolean
-    error: string | null
-  }
+    joined: boolean;
+    channelId: string | null;
+    localUid: number | null;
+    remoteUsers: RtcUser[];
+    joining: boolean;
+    error: string | null;
+  };
 }

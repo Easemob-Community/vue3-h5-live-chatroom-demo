@@ -2,7 +2,7 @@
   <LiveContainer ref="containerRef" :show-status="showStatus">
     <!-- RTC层插槽 -->
     <template #rtc>
-      <LiveRTC ref="rtcRef" :channel-name="channelName" :user-id="userId" :role="rtcRole" :auto-join="true"
+      <LiveRTC ref="rtcRef" :channel-name="channelName" :user-id="userId" :role="rtcRole" auto-join
         @joined="handleRtcJoined" @left="handleRtcLeft" @error="handleRtcError" @user-published="handleUserPublished"
         @user-unpublished="handleUserUnpublished" />
     </template>
@@ -114,13 +114,13 @@ const signalingRoomId = ref<string>(liveConfig.chatrooms.signaling.roomId);
 const channelName = ref<string>(liveConfig.rtc.channelName);
 const accessToken = ref<string>(liveConfig.user.accessToken || '');
 // RTC事件处理方法
-const handleRtcJoined = (channelId: string, uid: string) => {
+const handleRtcJoined = (channelId: string, uid: number) => {
   console.log('RTC加入成功:', channelId, uid)
   // 更新容器状态
   containerRef.value?.updateRtcStatus({
     joined: true,
     channelId,
-    localUid: uid
+    localUid: String(uid)
   })
 }
 

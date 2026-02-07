@@ -156,7 +156,7 @@ const joinChannel = async () => {
         }, 200)
       }
 
-      const uid = liveRTC.agoraUid || ''
+      const uid = liveRTC.agoraUid || 0
       emit('joined', props.channelName, uid)
       console.log('成功加入RTC频道:', props.channelName, '角色:', props.role, 'UID:', uid)
     })
@@ -287,7 +287,7 @@ const handleUserPublished = async (user: any, mediaType: 'audio' | 'video') => {
       console.log(`成功播放用户 ${user.uid} 的音频流`)
     }
 
-    emit('user-published', user, mediaType)
+    emit('userPublished', user, mediaType)
 
   } catch (error) {
     console.error('订阅用户流失败:', error)
@@ -309,7 +309,7 @@ const handleUserUnpublished = (user: any, mediaType: 'audio' | 'video') => {
     }
   }
 
-  emit('user-unpublished', user, mediaType)
+  emit('userUnpublished', user, mediaType)
 }
 
 // 组件挂载
