@@ -1,63 +1,115 @@
 <template>
-  <div>
-    <!-- 模式切换开关 -->
-    <div class="mode-switch-container">
-      <span>大型直播间弹幕策略切换</span>
-      <van-switch
-        v-model="isLargeMode"
-        class="mode-switch"
-        size="24px"
-        active-color="#07c160"
-        inactive-color="#dcdee0"
-        active-text="大型模式"
-        inactive-text="普通模式"
-      />
-    </div>
+  <LiveContainer ref="containerRef" :show-status="showStatus">
+    <!-- RTC层插槽 -->
+    <template #rtc>
+      <LiveRTC :channel-name="channelName" :user-id="userId" :role="rtcRole" :auto-join="true" @joined="handleRtcJoined"
+        @left="handleRtcLeft" @error="handleRtcError" @user-published="handleUserPublished"
+        @user-unpublished="handleUserUnpublished" ref="rtcRef" />
+    </template>
 
-    <!-- 拉流容器 -->
-    <div class="live-stream-container">
-      <!-- 这里可以放置拉流的视频组件，例如 video 标签 -->
-      <!-- <video ref="videoRef" autoplay muted controls width="100%" height="auto"></video> -->
-    </div>
-    <!-- 互动弹幕区域 -->
-    <DanmakuComp :messageList="messageList" />
-    <!-- 发送弹幕区域 -->
-    <div class="send-danmaku-container">
-      <input v-model.trim="messageContent" type="text" placeholder="输入弹幕内容" />
-      <button v-if="isLargeMode" @click="sendMessageInLargeMode">发送大型直播间</button>
-      <button v-else @click="sendMessage">发送</button>
-    </div>
-  </div>
+    <!-- 弹幕层插槽 -->
+    <template #danmaku>
+      <DanmakuComp :message-list="messageList" />
+    </template>
+
+    <!-- 控制层插槽 -->
+    <template #control>
+      <!-- 模式切换开关 -->
+      <div class="mode-switch-container">
+        <span>大型直播间弹幕策略切换</span>
+        <van-switch v-model="isLargeMode" class="mode-switch" size="24px" active-color="#07c160"
+          inactive-color="#dcdee0" active-text="大型模式" inactive-text="普通模式" />
+      </div>
+
+      <!-- 发送弹幕区域 -->
+      <div class="send-danmaku-container">
+        <input v-model.trim="messageContent" type="text" placeholder="输入弹幕内容" />
+        <button v-if="isLargeMode" @click="sendMessageInLargeMode">发送大型直播间</button>
+        <button v-else @click="sendMessage">发送</button>
+      </div>
+    </template>
+  </LiveContainer>
 </template>
 
 <script setup lang="ts">
-import { ref, watchEffect, watch, onMounted, onUnmounted } from 'vue';
+import { ref, watch, onMounted, onUnmounted } from 'vue';
 import { useThrottleFn, useDebounceFn } from '@vueuse/core';
 import { showToast } from 'vant';
-import { useRoute } from 'vue-router';
 import DanmakuComp from './components/DanmakuList/index.vue';
+import LiveRTC from './components/LiveRTC/index.vue';
+import LiveContainer from './components/LiveContainer/index.vue';
 // IM
 import { WebSDK, EMClient, EasemobChat } from '@/easeim';
-const route = useRoute();
-const userId = ref<string>('');
-const roomId = ref<string>('');
-const accessToken = ref<string>('');
-watchEffect(() => {
-  console.log(route);
-  if (route.query.userId && route.query.roomId && route.query.token) {
-    userId.value = route.query.userId as string;
-    roomId.value = route.query.roomId as string;
-    accessToken.value = route.query.token as string;
-  }
-});
-// 挂载连接监听
+// 直播间配置
+import { getCurrentLiveChatroomConfig } from '@/constants';
+
+// 组件引用
+const containerRef = ref<InstanceType<typeof LiveContainer> | null>(null)
+const rtcRef = ref<InstanceType<typeof LiveRTC> | null>(null)
+
+// 配置和状态
+const liveConfig = getCurrentLiveChatroomConfig();
+const showStatus = ref(true)
+const rtcRole = ref<'host' | 'audience'>('audience')
+
+// 从配置中提取必要的参数
+const userId = ref<string>(liveConfig.user.userId);
+const roomId = ref<string>(liveConfig.chatrooms.interactive.roomId);
+const signalingRoomId = ref<string>(liveConfig.chatrooms.signaling.roomId);
+const channelName = ref<string>(liveConfig.rtc.channelName);
+const accessToken = ref<string>(liveConfig.user.accessToken || '');
+// RTC事件处理方法
+const handleRtcJoined = (channelId: string, uid: string) => {
+  console.log('RTC加入成功:', channelId, uid)
+  // 更新容器状态
+  containerRef.value?.updateRtcStatus({
+    joined: true,
+    channelId,
+    localUid: uid
+  })
+}
+
+const handleRtcLeft = () => {
+  console.log('RTC离开频道')
+  containerRef.value?.updateRtcStatus({
+    joined: false,
+    channelId: null,
+    localUid: null
+  })
+}
+
+const handleRtcError = (error: Error) => {
+  console.error('RTC错误:', error)
+  showToast({
+    message: `RTC错误: ${error.message}`,
+    type: 'fail'
+  })
+}
+
+const handleUserPublished = (user: any, mediaType: 'audio' | 'video') => {
+  console.log('用户发布流:', user.uid, mediaType)
+}
+
+const handleUserUnpublished = (user: any, mediaType: 'audio' | 'video') => {
+  console.log('用户取消发布流:', user.uid, mediaType)
+}
 const mountEMConnectedListener = () => {
   EMClient.addEventHandler('CONNECTED', {
     onConnected: async () => {
       console.log('im connected');
+      // 更新容器状态
+      containerRef.value?.updateImStatus({
+        connected: true,
+        userId: userId.value
+      })
     },
     onDisconnected: () => {
       console.log('im disconnected');
+      // 更新容器状态
+      containerRef.value?.updateImStatus({
+        connected: false,
+        userId: null
+      })
     },
   });
 };
@@ -102,7 +154,7 @@ const joinLiveChatroom = async () => {
 const joinLiveSignalingChatroom = async () => {
   try {
     await EMClient.joinChatRoom({
-      roomId: 'signaling_room_id',
+      roomId: signalingRoomId.value,
       message: '加入信令聊天室',
     });
   } catch (error) {
@@ -114,7 +166,8 @@ const loginIM = async () => {
   try {
     await EMClient.open({
       user: userId.value,
-      accessToken: accessToken.value,
+      pwd: liveConfig.user.password || '',
+      accessToken: accessToken.value || undefined
     });
     /* 与环信建连成功后所需初始操作 */
     // 加入信令直播间
@@ -158,7 +211,9 @@ const sendMessage = useDebounceFn(async () => {
     msg: messageContent.value,
     chatType: 'chatRoom',
     ext: {
-      nickname:'xxxxx'
+      nickname: liveConfig.user.userId,
+      timestamp: Date.now(),
+      channelName: channelName.value
     }
   };
   try {
@@ -205,6 +260,12 @@ const sendMessageInLargeMode = async () => {
       msg: messageContent.value + '（LocalSend）',
       chatType: 'chatRoom',
       from: EMClient.context.userId,
+      ext: {
+        nickname: liveConfig.user.userId + '（本地）',
+        timestamp: Date.now(),
+        channelName: channelName.value,
+        isLocal: true
+      }
     };
     const msg = WebSDK.message.create(createTextMsg);
     console.log(msg);
@@ -241,37 +302,30 @@ watch(isLargeMode, (newVal) => {
 </script>
 
 <style scoped>
-.live-stream-container {
-  height: 100vh; /* 上半部分占70%的视口高度 */
-  background-image: url('@/assets/images/live-stream.jpg'); /* 替换为实际的直播流背景图 */
-  background-size: cover;
-  background-position: center;
+/* 模式切换开关样式 */
+.mode-switch-container {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  color: white;
   display: flex;
-  justify-content: center;
   align-items: center;
+  z-index: 110;
+  /* 确保在最顶层 */
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 8px 12px;
+  border-radius: 20px;
 }
 
+/* 发送弹幕容器样式 */
 .send-danmaku-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 10px;
-  background-color: #222;
+  background-color: rgba(34, 34, 34, 0.9);
   border-top: 1px solid #333;
-  position: fixed; /* 固定在页面底部 */
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 100; /* 确保在其他元素之上 */
-}
-
-.send-danmaku-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px;
-  background-color: #222;
-  border-top: 1px solid #333;
+  backdrop-filter: blur(10px);
 }
 
 .send-danmaku-container input {
@@ -297,19 +351,34 @@ watch(isLargeMode, (newVal) => {
   color: white;
   cursor: pointer;
   transition: background-color 0.2s;
+  white-space: nowrap;
 }
 
 .send-danmaku-container button:hover {
   background-color: #0056b3;
 }
 
-/* 新增模式切换样式 */
-.mode-switch-container {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  color: white;
-  display: flex;
-  align-items: center;
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .mode-switch-container {
+    top: 5px;
+    right: 5px;
+    padding: 6px 10px;
+    font-size: 14px;
+  }
+
+  .send-danmaku-container {
+    padding: 8px;
+  }
+
+  .send-danmaku-container input {
+    padding: 6px;
+    font-size: 14px;
+  }
+
+  .send-danmaku-container button {
+    padding: 6px 12px;
+    font-size: 14px;
+  }
 }
 </style>
