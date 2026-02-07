@@ -80,6 +80,8 @@ export interface LiveRtcExpose {
   joinChannel: () => Promise<void>;
   /** 离开RTC频道 */
   leaveChannel: () => Promise<void>;
+  /** 完全销毁RTC实例，释放所有资源 */
+  destroy: () => Promise<void>;
   /** 获取RTC状态 */
   getState: () => {
     joined: boolean;
