@@ -29,7 +29,7 @@
     <!-- 错误提示 -->
     <div v-if="state.error" class="error-overlay">
       <div class="error-message">{{ state.error }}</div>
-      <button @click="retryConnection" class="retry-button">重试</button>
+      <button class="retry-button" @click="retryConnection">重试</button>
     </div>
   </div>
 </template>
@@ -75,15 +75,15 @@ const localVideoTrack = ref<any>(null)
 // 远程用户管理
 const remoteUsers = ref<RtcUser[]>([])
 
+// 记录已播放的视频轨道，避免重复播放
+const playedVideoTracks = ref<Set<string>>(new Set())
+
 // 设置远程视频引用
 const setRemoteVideoRef = (uid: string, el: HTMLVideoElement | null) => {
   if (el) {
     remoteVideoRefs.value[uid] = el
-    // 如果已经有对应的用户流，立即播放
-    const user = remoteUsers.value.find(u => u.uid === uid)
-    if (user?.videoTrack && !user.videoTrack.isPlaying) {
-      user.videoTrack.play(el)
-    }
+    // 注意：不在这里播放视频，统一由 handleUserPublished 处理
+    // 避免因为 ref 函数重复调用导致的死循环
   }
 }
 
@@ -178,6 +178,8 @@ const leaveChannel = async () => {
     state.channelId = null
     state.localUid = null
     remoteUsers.value = []
+    // 清空播放记录
+    playedVideoTracks.value.clear()
     emit('left')
     console.log('离开RTC频道')
   } catch (error) {
@@ -234,6 +236,14 @@ const handleUserPublished = async (user: any, mediaType: 'audio' | 'video') => {
 
     // 播放视频流
     if (mediaType === 'video' && user.videoTrack) {
+      const trackId = `${user.uid}_video`
+
+      // 检查是否已经播放过，避免重复播放
+      if (playedVideoTracks.value.has(trackId)) {
+        console.log(`用户 ${user.uid} 的视频已在播放中，跳过重复播放`)
+        return
+      }
+
       // 多次尝试获取视频元素,确保DOM已挂载
       let retryCount = 0
       const maxRetries = 5
@@ -241,8 +251,14 @@ const handleUserPublished = async (user: any, mediaType: 'audio' | 'video') => {
         const videoEl = remoteVideoRefs.value[user.uid]
         if (videoEl) {
           try {
-            user.videoTrack.play(videoEl)
-            console.log(`成功播放用户 ${user.uid} 的视频流`)
+            // 检查轨道是否已经在播放
+            if (!user.videoTrack.isPlaying) {
+              user.videoTrack.play(videoEl)
+              playedVideoTracks.value.add(trackId)
+              console.log(`成功播放用户 ${user.uid} 的视频流`)
+            } else {
+              console.log(`用户 ${user.uid} 的视频轨道已在播放`)
+            }
           } catch (error) {
             console.error(`播放用户 ${user.uid} 视频失败:`, error)
             // 容错：使用srcObject方式
@@ -251,6 +267,7 @@ const handleUserPublished = async (user: any, mediaType: 'audio' | 'video') => {
               const stream = new MediaStream([mediaStream])
               videoEl.srcObject = stream
               videoEl.play().catch(e => console.error('原生视频播放失败:', e))
+              playedVideoTracks.value.add(trackId)
             }
           }
         } else if (retryCount < maxRetries) {
@@ -284,7 +301,12 @@ const handleUserUnpublished = (user: any, mediaType: 'audio' | 'video') => {
   const existingUser = remoteUsers.value.find(u => u.uid === user.uid)
   if (existingUser) {
     if (mediaType === 'audio') existingUser.hasAudio = false
-    if (mediaType === 'video') existingUser.hasVideo = false
+    if (mediaType === 'video') {
+      existingUser.hasVideo = false
+      // 清除播放记录
+      const trackId = `${user.uid}_video`
+      playedVideoTracks.value.delete(trackId)
+    }
   }
 
   emit('user-unpublished', user, mediaType)
