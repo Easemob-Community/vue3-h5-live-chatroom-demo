@@ -90,7 +90,7 @@ export function useRTC(options: UseRTCOptions): UseRTCReturn {
    * RTC Token信息
    */
   let agoraAppId: string | null = null
-  let agoraUid: string | null = null
+  let agoraUid: number | null = null
   let agoraToken: string | null = null
 
   // ==================== 步骤1：初始化RTC客户端 ====================
@@ -409,13 +409,19 @@ export function useRTC(options: UseRTCOptions): UseRTCReturn {
    * @param cleanupVideoElement - 可选的清理回调，用于清理video元素的srcObject
    */
   const closeLocalTracks = async (cleanupVideoElement?: () => void): Promise<void> => {
-    console.log('[useRTC] 开始关闭本地轨道...')
+    console.log('[useRTC] 开始关闭本地轨道...', {
+      hasAudio: !!localAudioTrack.value,
+      hasVideo: !!localVideoTrack.value,
+      hasCleanupCallback: !!cleanupVideoElement
+    })
 
-    // 关键：先清理video元素的srcObject（如果提供了清理回调）
+    // 关键：无论轨道是否存在，都先执行清理回调（清理video元素的srcObject）
+    // 因为即使轨道引用已经被清空，video元素可能还在占用媒体流
     if (cleanupVideoElement) {
       try {
         console.log('[useRTC] 执行video元素清理回调...')
         cleanupVideoElement()
+        console.log('[useRTC] ✅ video元素清理回调执行完成')
       } catch (error) {
         console.warn('[useRTC] 清理video元素时出错:', error)
       }
@@ -433,6 +439,8 @@ export function useRTC(options: UseRTCOptions): UseRTCReturn {
         console.error('[useRTC] ❌ 销毁本地音频轨道时出错:', error)
         localAudioTrack.value = null
       }
+    } else {
+      console.log('[useRTC] 本地音频轨道不存在，跳过')
     }
 
     // 关闭本地视频轨道
@@ -447,6 +455,8 @@ export function useRTC(options: UseRTCOptions): UseRTCReturn {
         console.error('[useRTC] ❌ 销毁本地视频轨道时出错:', error)
         localVideoTrack.value = null
       }
+    } else {
+      console.log('[useRTC] 本地视频轨道不存在，跳过')
     }
 
     console.log('[useRTC] ✅ 本地轨道关闭完成')

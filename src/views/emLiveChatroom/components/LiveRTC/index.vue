@@ -170,7 +170,7 @@ const startLiveStreaming = async () => {
     console.log('[LiveRTC] ✅ 步骤 3-4 完成: 成功加入频道')
 
     // 发出 joined 事件通知父组件
-    emit('joined', props.channelName, state.localUid || '')
+    emit('joined', props.channelName, state.localUid || 0)
 
     // 步骤 5: 主播发布流
     if (isHost.value) {
@@ -210,6 +210,34 @@ const retryConnection = () => {
   startLiveStreaming()
 }
 
+/**
+ * 包装 leaveChannel，自动传递清理回调
+ * 这个方法将暴露给父组件，确保 video 元素正确清理
+ */
+const leaveChannelWithCleanup = async (): Promise<void> => {
+  console.log('[LiveRTC] 开始离开频道并清理资源')
+
+  await leaveChannel(() => {
+    // 清理本地video元素
+    if (localVideoRef.value) {
+      try {
+        if (localVideoRef.value.srcObject) {
+          localVideoRef.value.srcObject = null
+        }
+        localVideoRef.value.pause()
+        console.log('[LiveRTC] 本地video元素已清理')
+      } catch (error) {
+        console.warn('[LiveRTC] 清理本地video元素时出错:', error)
+      }
+    }
+
+    // 清理远程video元素
+    cleanupRemoteVideos()
+  })
+
+  console.log('[LiveRTC] 离开频道完成')
+}
+
 // ==================== 生命周期钩子 ====================
 
 /**
@@ -227,25 +255,9 @@ onMounted(() => {
 onUnmounted(async () => {
   console.log('[LiveRTC] 组件即将卸载，开始清理资源')
 
-  // 离开RTC频道（传递video元素清理回调）
+  // 离开RTC频道（使用包装后的方法）
   if (state.joined) {
-    await leaveChannel(() => {
-      // 清理本地video元素
-      if (localVideoRef.value) {
-        try {
-          if (localVideoRef.value.srcObject) {
-            localVideoRef.value.srcObject = null
-          }
-          localVideoRef.value.pause()
-          console.log('[LiveRTC] 本地video元素已清理')
-        } catch (error) {
-          console.warn('[LiveRTC] 清理本地video元素时出错:', error)
-        }
-      }
-
-      // 清理远程video元素
-      cleanupRemoteVideos()
-    })
+    await leaveChannelWithCleanup()
     emit('left')
   }
 
@@ -261,7 +273,7 @@ onUnmounted(async () => {
 defineExpose({
   initRTC,
   joinChannel: startLiveStreaming,  // 暴露完整流程
-  leaveChannel,
+  leaveChannel: leaveChannelWithCleanup,  // 暴露包装后的方法，确保清理回调被传递
   getState: () => ({ ...state })
 })
 </script>

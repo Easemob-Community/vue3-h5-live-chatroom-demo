@@ -29,7 +29,7 @@ export interface LiveRtcProps {
  */
 export interface LiveRtcEmits {
   /** 加入频道成功 */
-  (e: 'joined', channelId: string, uid: string): void
+  (e: 'joined', channelId: string, uid: number): void
   /** 离开频道 */
   (e: 'left'): void
   /** 错误事件 */
@@ -65,7 +65,7 @@ export interface RtcState {
   /** 当前频道ID */
   channelId: string | null
   /** 本地用户ID */
-  localUid: string | null
+  localUid: number | null
   /** 远程用户列表 */
   remoteUsers: RtcUser[]
   /** 是否正在加入 */
