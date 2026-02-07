@@ -4,6 +4,12 @@
     <template v-slot="{ item, active }">
       <DynamicScrollerItem :item="item" :active="active" :size-dependencies="[item.msg]" :data-index="item.id">
         <div class="danmaku-item">
+          <!-- 角色标签 -->
+          <span v-if="item?.ext?.role"
+            :class="['danmaku-role', item.ext.role === 'host' ? 'danmaku-role-host' : 'danmaku-role-audience']">{{
+              item.ext.role === 'host' ? '房主'
+                : '观众' }}</span>
+
           <span class="danmaku-nickname">{{ item?.ext?.nickname || item.from }}</span>
           <span class="danmaku-separator">:</span>
           <span class="danmaku-content">{{ item.msg }}</span>
@@ -56,6 +62,8 @@ const scrollToBottom = () => {
   padding: 10px 12px;
   z-index: 1;
   top: auto;
+  /* 启用指针事件以支持滚动 */
+  pointer-events: auto;
   /* 滚动条样式 */
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
@@ -69,6 +77,23 @@ const scrollToBottom = () => {
   margin: 6px 0;
   font-size: 14px;
   line-height: 1.5;
+}
+
+.danmaku-role {
+  color: #ff6b6b;
+  font-weight: 500;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.danmaku-role-host {
+  color: #ff6b6b;
+  font-weight: 600;
+}
+
+.danmaku-role-audience {
+  color: #4dabf7;
+  font-weight: 500;
 }
 
 .danmaku-nickname {

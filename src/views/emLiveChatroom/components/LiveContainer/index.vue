@@ -115,7 +115,7 @@ defineExpose({
   height: 100%;
   z-index: 20;
   pointer-events: none;
-  /* 不阻挡底层交互 */
+  /* 不阻挡底层交互，但允许子元素接收事件 */
 }
 
 /* 控制层 - 顶部 */

@@ -178,7 +178,10 @@ const mountEMConnectedListener = () => {
 const mountEMMessageListener = () => {
   EMClient.addEventHandler('RECEIVE_MESSAGE', {
     onTextMessage: (message: EasemobChat.TextMsgBody) => {
-      batchUpdate(message);
+      // 只处理互动直播间的消息，过滤其他聊天室的消息
+      if (message.to === roomId.value) {
+        batchUpdate(message);
+      }
     },
   });
 };
@@ -228,12 +231,35 @@ const joinLiveSignalingChatroom = async () => {
 };
 // 环信登录
 const loginIM = async () => {
-  try {
-    await EMClient.open({
-      user: userId.value,
-      pwd: liveConfig.user.password || '',
-      accessToken: accessToken.value || undefined
+  const loginParams: {
+    user: string;
+    pwd?: string;
+    accessToken?: string;
+  } = {
+    user: userId.value,
+  }
+  if (!userId.value) {
+    showToast({
+      message: '用户ID不能为空',
+      type: 'fail'
     });
+    return;
+  }
+  // pwd 或者 token具备任意一个值即可
+  if (!liveConfig.user.password && !liveConfig.user.accessToken) {
+    showToast({
+      message: '密码或Token不能为空',
+      type: 'fail'
+    });
+    return;
+  }
+  if (liveConfig.user.password) {
+    loginParams.pwd = liveConfig.user.password;
+  } else {
+    loginParams.accessToken = liveConfig.user.accessToken;
+  }
+  try {
+    await EMClient.open(loginParams);
     /* 与环信建连成功后所需初始操作 */
     // 加入信令直播间
     await joinLiveSignalingChatroom();
@@ -248,6 +274,37 @@ const loginIM = async () => {
 
 // 可展示消息类型声明
 const messageList = ref<EasemobChat.ExcludeAckMessageBody[]>([]);
+
+/**
+ * @description 合并并排序消息列表（高性能版本）
+ * @param existingList 现有消息列表
+ * @param newMessages 新获取的消息数组
+ * @returns 按时间戳排序（早→晚）的去重消息列表
+ */
+const mergeAndSortMessages = (
+  existingList: EasemobChat.ExcludeAckMessageBody[],
+  newMessages: EasemobChat.ExcludeAckMessageBody[]
+): EasemobChat.ExcludeAckMessageBody[] => {
+  if (newMessages.length === 0) return existingList;
+
+  // 使用 Set 进行 O(1) 复杂度的去重检查
+  const existingIds = new Set(existingList.map(msg => msg.id));
+
+  // 过滤出唯一的新消息
+  const uniqueNewMessages = newMessages.filter(msg => !existingIds.has(msg.id));
+
+  if (uniqueNewMessages.length === 0) return existingList;
+
+  // 合并消息
+  const merged = [...existingList, ...uniqueNewMessages];
+
+  // 按时间戳排序（早→晚），使用 Schwartzian transform 优化性能
+  return merged
+    .map(msg => ({ msg, time: msg.time || 0 }))
+    .sort((a, b) => a.time - b.time)
+    .map(({ msg }) => msg);
+};
+
 // 获取聊天室消息
 const fetchLiveChatroomHistoryMessages = async () => {
   try {
@@ -259,8 +316,11 @@ const fetchLiveChatroomHistoryMessages = async () => {
     });
     console.log('fetchChatroomMessages', res);
     if (res?.messages?.length > 0) {
-      // 展开反转后的消息数组，而不是将数组作为单个元素添加
-      messageList.value = [...(res.messages.reverse() as EasemobChat.ExcludeAckMessageBody[]), ...messageList.value];
+      // 使用高性能合并排序方法
+      messageList.value = mergeAndSortMessages(
+        messageList.value,
+        res.messages as EasemobChat.ExcludeAckMessageBody[]
+      );
     }
   } catch (error) {
     console.error('fetchChatroomMessages error', error);
@@ -277,6 +337,7 @@ const sendMessage = useDebounceFn(async () => {
     chatType: 'chatRoom',
     ext: {
       nickname: `${liveConfig.user.nickname}(${liveConfig.user.userId})`,
+      role: rtcRole.value,
       timestamp: Date.now(),
       channelName: channelName.value
     }
@@ -353,7 +414,8 @@ onMounted(() => {
 onUnmounted(() => {
   EMClient.close();
   EMClient.removeEventHandler('CONNECTED');
-  EMClient.removeEventHandler('RECEIVED_NEW_MESSAGE');
+  EMClient.removeEventHandler('RECEIVE_MESSAGE');
+  EMClient.removeEventHandler('RECEIVED_SIGNALING_MESSAGE');
 });
 
 // 新增大型模式状态（从配置读取）
@@ -388,7 +450,8 @@ const goToHome = async () => {
   try {
     EMClient.close()
     EMClient.removeEventHandler('CONNECTED')
-    EMClient.removeEventHandler('RECEIVED_NEW_MESSAGE')
+    EMClient.removeEventHandler('RECEIVE_MESSAGE')
+    EMClient.removeEventHandler('RECEIVED_SIGNALING_MESSAGE')
     console.log('[emLiveChatroom] ✅ IM 连接已关闭')
   } catch (error) {
     console.error('[emLiveChatroom] 关闭 IM 连接时出错:', error)
