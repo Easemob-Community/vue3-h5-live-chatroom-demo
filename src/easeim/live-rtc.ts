@@ -1,3 +1,16 @@
+/**
+ * ⚠️ 废弃警告 (DEPRECATED)
+ * 
+ * 此文件已不再使用，LiveRTC 逻辑已合并到组件中：
+ * src/views/emLiveChatroom/components/LiveRTC/index.vue
+ * 
+ * 保留此文件仅供历史参考和对比。
+ * 新的实现将 RTC 逻辑直接集成在 Vue 组件中，简化了架构，
+ * 并优化了资源释放逻辑。
+ * 
+ * @deprecated 2026-02-07
+ */
+
 import AgoraRTC, {
   type IAgoraRTCClient,
   type ClientRole,
@@ -10,7 +23,11 @@ import AgoraRTC, {
 } from 'agora-rtc-sdk-ng';
 import { EasemobChat } from './index';
 
-/* 封装直播RTC相关类 */
+/**
+ * @deprecated LiveRTC 类已合并到 LiveRTC Vue 组件中
+ * 请使用 src/views/emLiveChatroom/components/LiveRTC/index.vue
+ */
+export class LiveRTC {
 export class LiveRTC {
   public client: IAgoraRTCClient | null = null;
   public channelName: string | null = null;
