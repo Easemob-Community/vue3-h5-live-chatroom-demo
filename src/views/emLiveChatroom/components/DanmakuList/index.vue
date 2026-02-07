@@ -3,7 +3,17 @@
   <DynamicScroller ref="scroller" :items="messageList" :min-item-size="54" class="danmaku-container">
     <template v-slot="{ item, active }">
       <DynamicScrollerItem :item="item" :active="active" :size-dependencies="[item.msg]" :data-index="item.id">
-        <div class="danmaku-item">{{ item.from }}： {{ item.msg }}</div>
+        <div class="danmaku-item">
+          <!-- 角色标签 -->
+          <span v-if="item?.ext?.role"
+            :class="['danmaku-role', item.ext.role === 'host' ? 'danmaku-role-host' : 'danmaku-role-audience']">{{
+              item.ext.role === 'host' ? '房主'
+                : '观众' }}</span>
+
+          <span class="danmaku-nickname">{{ item?.ext?.nickname || item.from }}</span>
+          <span class="danmaku-separator">:</span>
+          <span class="danmaku-content">{{ item.msg }}</span>
+        </div>
       </DynamicScrollerItem>
     </template>
   </DynamicScroller>
@@ -44,36 +54,62 @@ const scrollToBottom = () => {
   /* 调整为距离底部 80px 开始 */
   bottom: 80px;
   height: calc(40vh - 80px);
-  overflow-y: auto; /* 改为auto允许滚动 */
-  overflow-x: hidden; /* 水平方向不滚动 */
+  overflow-y: auto;
+  overflow-x: hidden;
   position: absolute;
   left: 0;
   width: 100%;
-  padding: 10px 0; /* 添加上下内边距 */
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+  padding: 10px 12px;
   z-index: 1;
   top: auto;
-  /* 添加滚动条样式 */
+  /* 启用指针事件以支持滚动 */
+  pointer-events: auto;
+  /* 滚动条样式 */
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
-  border-radius: 20px;
 }
 
 .danmaku-item {
-  color: white;
-  font-size: 16px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  display: block;
-  position: relative;
-  width: fit-content;
-  max-width: 90%;
-  white-space: normal;
+  display: inline-flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  max-width: 100%;
+  margin: 6px 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.danmaku-role {
+  color: #ff6b6b;
+  font-weight: 500;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.danmaku-role-host {
+  color: #ff6b6b;
+  font-weight: 600;
+}
+
+.danmaku-role-audience {
+  color: #4dabf7;
+  font-weight: 500;
+}
+
+.danmaku-nickname {
+  color: #ffd700;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.danmaku-separator {
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+.danmaku-content {
+  color: #ffffff;
   word-break: break-word;
-  margin: 8px 0; /* 添加上下8px的外边距 */
-  /* 或者使用以下方式单独控制上下间距 */
-  /* margin-top: 8px; */
-  /* margin-bottom: 8px; */
 }
 </style>

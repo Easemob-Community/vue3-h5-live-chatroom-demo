@@ -260,6 +260,13 @@ const routes = [
   // im livechatroom
   {
     path: '/im/livechatroom',
+    component: () => import('@/views/emLiveChatroom/config.vue'),
+    meta: {
+      title: '直播间配置',
+    },
+  },
+  {
+    path: '/im/livechatroom/live',
     component: () => import('@/views/emLiveChatroom/index.vue'),
     meta: {
       title: '直播聊天室',

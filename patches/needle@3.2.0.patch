@@ -1,0 +1,25 @@
+diff --git a/lib/needle.js b/lib/needle.js
+index df5f1264fe40e3da9c854d4abec0c76910582d5a..1aac4d1b4a4d34cd8288015d13df03b6bcac2d62 100644
+--- a/lib/needle.js
++++ b/lib/needle.js
+@@ -34,8 +34,18 @@ var tls_options = 'pfx key passphrase cert ca ciphers rejectUnauthorized secureP
+ // we'll default new requests to set a Connection: close header.
+ var close_by_default = !http.Agent || http.Agent.defaultMaxSockets != Infinity;
+ 
+-// see if we have Object.assign. otherwise fall back to util._extend
+-var extend = Object.assign ? Object.assign : require('util')._extend;
++// see if we have Object.assign. otherwise use Object.assign polyfill
++var extend = Object.assign || function(target) {
++  for (var i = 1; i < arguments.length; i++) {
++    var source = arguments[i];
++    for (var key in source) {
++      if (source.hasOwnProperty(key)) {
++        target[key] = source[key];
++      }
++    }
++  }
++  return target;
++};
+ 
+ // these are the status codes that Needle interprets as redirects.
+ var redirect_codes = [301, 302, 303, 307, 308];
