@@ -35,13 +35,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
-import { useRTC } from './useRTC'
+import { ref, reactive, onMounted, onUnmounted, watch, computed, nextTick } from 'vue'
+import { LiveRTC } from '@/easeim/live-rtc'
 import { EMClient } from '@/easeim'
-import type { LiveRtcProps, LiveRtcEmits } from './types'
+import type { ClientRole } from 'agora-rtc-sdk-ng'
+import type { LiveRtcProps, LiveRtcEmits, RtcState, RtcUser } from './types'
 
-// ==================== 组件属性和事件 ====================
-
+// 定义组件属性和事件
 const props = withDefaults(defineProps<LiveRtcProps>(), {
   role: 'audience',
   autoJoin: true,
@@ -51,52 +51,31 @@ const props = withDefaults(defineProps<LiveRtcProps>(), {
 
 const emit = defineEmits<LiveRtcEmits>()
 
-// ==================== 计算属性 ====================
-
-// 是否为主播
+// 计算属性：是否为主播
 const isHost = computed(() => props.role === 'host')
 
-// ==================== 使用 useRTC Hook ====================
-
-/**
- * 使用 useRTC Hook 封装 RTC 相关逻辑
- * 
- * 这个 Hook 提供了完整的 RTC 直播流程：
- * 1. initRTC - 初始化RTC客户端
- * 2. setupEventListeners - 挂载事件监听器
- * 3. joinChannel - 加入频道（内部获取Token）
- * 4. publishTracks - 发布音视频流（主播专用）
- * 5. playLocalVideo - 播放本地视频预览
- */
-const {
-  state,
-  localVideoTrack,
-  remoteUsers,
-  initRTC,
-  setupEventListeners,
-  joinChannel,
-  publishTracks,
-  playLocalVideo,
-  leaveChannel
-} = useRTC({
-  channelName: props.channelName,
-  role: props.role,
-  chatClient: EMClient,
-  autoJoin: props.autoJoin
+// 组件状态
+const state = reactive<RtcState>({
+  joined: false,
+  channelId: null,
+  localUid: null,
+  remoteUsers: [],
+  joining: false,
+  error: null
 })
 
-// ==================== 视频元素引用 ====================
+// RTC实例
+const liveRTC = new LiveRTC(props.channelName as string)
 
-// 本地视频元素引用（主播使用）
+// 视频引用
 const localVideoRef = ref<HTMLVideoElement | null>(null)
-
-// 远程视频元素引用（存储多个远程用户的video元素）
 const remoteVideoRefs = ref<Record<string, HTMLVideoElement | null>>({})
+const localVideoTrack = ref<any>(null)
 
-/**
- * 设置远程视频元素引用
- * 当video元素创建时，自动播放对应用户的视频流
- */
+// 远程用户管理
+const remoteUsers = ref<RtcUser[]>([])
+
+// 设置远程视频引用
 const setRemoteVideoRef = (uid: string, el: HTMLVideoElement | null) => {
   if (el) {
     remoteVideoRefs.value[uid] = el
@@ -105,175 +84,253 @@ const setRemoteVideoRef = (uid: string, el: HTMLVideoElement | null) => {
     if (user?.videoTrack && !user.videoTrack.isPlaying) {
       user.videoTrack.play(el)
     }
-  } else {
-    // 元素被销毁时，清理引用
-    delete remoteVideoRefs.value[uid]
   }
 }
 
-/**
- * 清理所有远程视频元素
- * 停止播放并清空video元素的srcObject
- */
-const cleanupRemoteVideos = () => {
-  Object.entries(remoteVideoRefs.value).forEach(([uid, videoEl]) => {
-    if (videoEl) {
-      try {
-        // 清空srcObject，释放媒体流
-        if (videoEl.srcObject) {
-          videoEl.srcObject = null
-        }
-        // 暂停播放
-        videoEl.pause()
-        console.log(`[LiveRTC] 清理远程用户 ${uid} 的video元素`)
-      } catch (error) {
-        console.warn(`[LiveRTC] 清理远程用户 ${uid} 的video元素时出错:`, error)
+// 初始化RTC客户端
+const initRTC = async () => {
+  try {
+    await liveRTC.initRTC(props.role)
+    console.log('RTC初始化成功，角色:', props.role)
+
+    // 设置事件监听（必须在client初始化后）
+    const client = liveRTC.getClient()
+    if (client) {
+      client.on('user-published', handleUserPublished)
+      client.on('user-unpublished', handleUserUnpublished)
+      console.log('RTC事件监听器已注册')
+    } else {
+      console.error('无法获取RTC客户端,事件监听器未注册')
+    }
+
+    // 如果是主播，获取本地视频轨道并准备播放
+    if (isHost.value) {
+      const track = liveRTC.getLocalVideoTrack()
+      if (track) {
+        localVideoTrack.value = track
+        console.log('主播本地视频轨道已创建')
       }
     }
-  })
-  // 清空引用
-  remoteVideoRefs.value = {}
-}
-
-// ==================== RTC 直播流程 ====================
-
-/**
- * 完整的 RTC 直播流程示例
- * 
- * 此方法展示了如何按顺序调用 useRTC 提供的方法，
- * 完成从初始化到开始直播的完整流程
- * 
- * 流程步骤：
- * 1. 初始化 RTC 客户端
- * 2. 挂载事件监听器（监听远程用户的流变化）
- * 3. 加入 RTC 频道（内部会自动获取 Token）
- * 4. 如果是主播：
- *    a. 发布本地音视频流
- *    b. 播放本地视频预览
- * 5. 如果是观众：
- *    自动订阅主播的流（在 setupEventListeners 中处理）
- */
-const startLiveStreaming = async () => {
-  try {
-    console.log('[LiveRTC] 开始启动直播流程')
-
-    // 步骤 1: 初始化 RTC 客户端
-    await initRTC()
-    console.log('[LiveRTC] ✅ 步骤 1 完成: RTC客户端初始化成功')
-
-    // 步骤 2: 挂载事件监听器
-    setupEventListeners()
-    console.log('[LiveRTC] ✅ 步骤 2 完成: 事件监听器已挂载')
-
-    // 步骤 3-4: 加入频道（内部自动获取Token）
-    await joinChannel()
-    console.log('[LiveRTC] ✅ 步骤 3-4 完成: 成功加入频道')
-
-    // 发出 joined 事件通知父组件
-    emit('joined', props.channelName, state.localUid || 0)
-
-    // 步骤 5: 主播发布流
-    if (isHost.value) {
-      // 发布本地音视频流（遵循职责分离原则，由组件层显式调用）
-      await publishTracks()
-      console.log('[LiveRTC] ✅ 步骤 5 完成: 本地音视频流已发布')
-
-      // 播放本地视频预览
-      await nextTick()
-      setTimeout(() => {
-        if (localVideoRef.value && localVideoTrack.value) {
-          playLocalVideo(localVideoRef.value)
-          console.log('[LiveRTC] ✅ 本地视频预览已开始播放')
-        } else {
-          console.warn('[LiveRTC] ⚠️ 视频元素或轨道未就绪', {
-            videoEl: localVideoRef.value,
-            track: localVideoTrack.value
-          })
-        }
-      }, 200)
-    } else {
-      console.log('[LiveRTC] 观众模式: 等待订阅主播流')
-    }
-
-    console.log('[LiveRTC] ✨ 直播流程启动完成')
   } catch (error) {
-    console.error('[LiveRTC] 直播流程启动失败:', error)
-    emit('error', error as Error)
+    handleError(error as Error)
   }
 }
 
-/**
- * 重试连接
- */
+// 加入频道
+const joinChannel = async () => {
+  if (state.joined || state.joining) return
+
+  state.joining = true
+  state.error = null
+
+  try {
+    // 获取RTC Token
+    const token = await liveRTC.getAccessToken(EMClient)
+    if (!token) {
+      throw new Error('获取RTC Token失败')
+    }
+
+    // 加入频道，使用 callback 在加入成功后发布流
+    await liveRTC.joinRTC(async () => {
+      state.joined = true
+      state.channelId = props.channelName
+      state.localUid = liveRTC.agoraUid
+
+      // 如果是主播，先发布流，再播放本地视频
+      if (isHost.value) {
+        // 发布本地音视频流
+        await liveRTC.publishLocalTracks()
+
+        // 播放本地视频预览
+        await nextTick()
+        setTimeout(() => {
+          if (localVideoRef.value && localVideoTrack.value) {
+            liveRTC.playLocalVideo(localVideoRef.value)
+            console.log('主播本地视频开始播放', localVideoRef.value)
+          } else {
+            console.warn('视频元素或轨道未就绪', {
+              videoEl: localVideoRef.value,
+              track: localVideoTrack.value
+            })
+          }
+        }, 200)
+      }
+
+      const uid = liveRTC.agoraUid || ''
+      emit('joined', props.channelName, uid)
+      console.log('成功加入RTC频道:', props.channelName, '角色:', props.role, 'UID:', uid)
+    })
+
+  } catch (error) {
+    handleError(error as Error)
+  } finally {
+    state.joining = false
+  }
+}
+
+// 离开频道
+const leaveChannel = async () => {
+  if (!state.joined) return
+
+  try {
+    await liveRTC.leaveRTC()
+    state.joined = false
+    state.channelId = null
+    state.localUid = null
+    remoteUsers.value = []
+    emit('left')
+    console.log('离开RTC频道')
+  } catch (error) {
+    handleError(error as Error)
+  }
+}
+
+// 处理错误
+const handleError = (error: Error) => {
+  state.error = error.message
+  emit('error', error)
+  console.error('RTC错误:', error)
+}
+
+// 重试连接
 const retryConnection = () => {
   state.error = null
-  startLiveStreaming()
+  joinChannel()
 }
 
-/**
- * 包装 leaveChannel，自动传递清理回调
- * 这个方法将暴露给父组件，确保 video 元素正确清理
- */
-const leaveChannelWithCleanup = async (): Promise<void> => {
-  console.log('[LiveRTC] 开始离开频道并清理资源')
+// 监听用户发布流
+const handleUserPublished = async (user: any, mediaType: 'audio' | 'video') => {
+  try {
+    console.log(`远端用户 ${user.uid} 发布了 ${mediaType} 流`)
 
-  await leaveChannel(() => {
-    // 清理本地video元素
-    if (localVideoRef.value) {
-      try {
-        if (localVideoRef.value.srcObject) {
-          localVideoRef.value.srcObject = null
-        }
-        localVideoRef.value.pause()
-        console.log('[LiveRTC] 本地video元素已清理')
-      } catch (error) {
-        console.warn('[LiveRTC] 清理本地video元素时出错:', error)
+    // 订阅远端用户
+    await liveRTC.getClient()?.subscribe(user, mediaType)
+    console.log(`成功订阅用户 ${user.uid} 的 ${mediaType} 流`)
+
+    // 更新用户状态
+    let existingUser = remoteUsers.value.find(u => u.uid === user.uid)
+    if (existingUser) {
+      if (mediaType === 'audio') {
+        existingUser.hasAudio = true
+        existingUser.audioTrack = user.audioTrack
       }
+      if (mediaType === 'video') {
+        existingUser.hasVideo = true
+        existingUser.videoTrack = user.videoTrack
+      }
+    } else {
+      remoteUsers.value.push({
+        uid: user.uid,
+        hasAudio: mediaType === 'audio',
+        hasVideo: mediaType === 'video',
+        audioTrack: mediaType === 'audio' ? user.audioTrack : undefined,
+        videoTrack: mediaType === 'video' ? user.videoTrack : undefined
+      })
+      existingUser = remoteUsers.value[remoteUsers.value.length - 1]
     }
 
-    // 清理远程video元素
-    cleanupRemoteVideos()
-  })
+    // 等待DOM更新后播放媒体流
+    await nextTick()
 
-  console.log('[LiveRTC] 离开频道完成')
+    // 播放视频流
+    if (mediaType === 'video' && user.videoTrack) {
+      // 多次尝试获取视频元素,确保DOM已挂载
+      let retryCount = 0
+      const maxRetries = 5
+      const tryPlayVideo = () => {
+        const videoEl = remoteVideoRefs.value[user.uid]
+        if (videoEl) {
+          try {
+            user.videoTrack.play(videoEl)
+            console.log(`成功播放用户 ${user.uid} 的视频流`)
+          } catch (error) {
+            console.error(`播放用户 ${user.uid} 视频失败:`, error)
+            // 容错：使用srcObject方式
+            const mediaStream = user.videoTrack.getMediaStreamTrack()
+            if (mediaStream && videoEl) {
+              const stream = new MediaStream([mediaStream])
+              videoEl.srcObject = stream
+              videoEl.play().catch(e => console.error('原生视频播放失败:', e))
+            }
+          }
+        } else if (retryCount < maxRetries) {
+          retryCount++
+          console.log(`视频元素未就绪，${100}ms后重试 (${retryCount}/${maxRetries})`)
+          setTimeout(tryPlayVideo, 100)
+        } else {
+          console.error(`无法获取用户 ${user.uid} 的视频元素`)
+        }
+      }
+      tryPlayVideo()
+    }
+
+    // 播放音频流
+    if (mediaType === 'audio' && user.audioTrack) {
+      user.audioTrack.play()
+      console.log(`成功播放用户 ${user.uid} 的音频流`)
+    }
+
+    emit('user-published', user, mediaType)
+
+  } catch (error) {
+    console.error('订阅用户流失败:', error)
+    handleError(error as Error)
+  }
 }
 
-// ==================== 生命周期钩子 ====================
-
-/**
- * 组件挂载时：如果开启了 autoJoin，自动启动直播流程
- */
-onMounted(() => {
-  console.log('[LiveRTC] 组件已挂载, autoJoin:', props.autoJoin)
-  // 注意：RTC初始化现在由父组件在IM连接成功后调用
-  // 这里不自动启动，等待父组件调用 startLiveStreaming
-})
-
-/**
- * 组件卸载时：自动离开频道并发出 left 事件
- */
-onUnmounted(async () => {
-  console.log('[LiveRTC] 组件即将卸载，开始清理资源')
-
-  // 离开RTC频道（使用包装后的方法）
-  if (state.joined) {
-    await leaveChannelWithCleanup()
-    emit('left')
+// 监听用户取消发布流
+const handleUserUnpublished = (user: any, mediaType: 'audio' | 'video') => {
+  // 更新用户状态
+  const existingUser = remoteUsers.value.find(u => u.uid === user.uid)
+  if (existingUser) {
+    if (mediaType === 'audio') existingUser.hasAudio = false
+    if (mediaType === 'video') existingUser.hasVideo = false
   }
 
-  console.log('[LiveRTC] 组件卸载清理完成')
+  emit('user-unpublished', user, mediaType)
+}
+
+// 组件挂载
+onMounted(async () => {
+  // 注意：RTC初始化和事件监听现在在 initRTC 方法中统一处理
+  // initRTC 由父组件在IM连接成功后调用
+  console.log('LiveRTC组件已挂载,等待父组件调用initRTC')
 })
 
-// ==================== 暴露给父组件的方法 ====================
+// 组件卸载
+onUnmounted(async () => {
+  await leaveChannel()
 
-/**
- * 暴露给父组件的方法和状态
- * 父组件可以通过 ref 获取这些方法来控制 RTC
- */
+  // 清理事件监听
+  const client = liveRTC.getClient()
+  if (client) {
+    client.off('user-published', handleUserPublished)
+    client.off('user-unpublished', handleUserUnpublished)
+  }
+})
+
+// 监听属性变化
+watch(() => props.channelName, async (newChannel) => {
+  if (state.joined && newChannel !== state.channelId) {
+    await leaveChannel()
+    await joinChannel()
+  }
+})
+
+// 监听本地视频轨道变化，当轨道就绪且视频元素存在时自动播放
+watch(localVideoTrack, async (track) => {
+  if (track && isHost.value && localVideoRef.value && state.joined) {
+    await nextTick()
+    liveRTC.playLocalVideo(localVideoRef.value)
+    console.log('监听到轨道变化，开始播放本地视频')
+  }
+})
+
+// 暴露方法给父组件
 defineExpose({
   initRTC,
-  joinChannel: startLiveStreaming,  // 暴露完整流程
-  leaveChannel: leaveChannelWithCleanup,  // 暴露包装后的方法，确保清理回调被传递
+  joinChannel,
+  leaveChannel,
   getState: () => ({ ...state })
 })
 </script>

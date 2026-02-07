@@ -373,13 +373,13 @@ const goToConfig = () => {
 const goToHome = async () => {
   console.log('[emLiveChatroom] 点击返回首页，开始清理资源')
 
-  // 主动清理 RTC 资源
+  // 主动销毁 RTC 实例（彻底清理）
   if (rtcRef.value) {
     try {
-      await rtcRef.value.leaveChannel()
-      console.log('[emLiveChatroom] ✅ RTC 资源已清理')
+      await rtcRef.value.destroy()  // 使用 destroy 而不是 leaveChannel
+      console.log('[emLiveChatroom] ✅ RTC 实例已销毁')
     } catch (error) {
-      console.error('[emLiveChatroom] 清理 RTC 资源时出错:', error)
+      console.error('[emLiveChatroom] 销毁 RTC 实例时出错:', error)
     }
   }
 

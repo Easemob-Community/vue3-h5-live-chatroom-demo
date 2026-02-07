@@ -1,6 +1,4 @@
-import type { ClientRole, ICameraVideoTrack, IMicrophoneAudioTrack } from 'agora-rtc-sdk-ng'
-import type { Ref } from 'vue'
-import type { EasemobChat } from '@/easeim'
+import type { ClientRole } from 'agora-rtc-sdk-ng'
 
 /**
  * RTC组件属性配置
@@ -29,7 +27,7 @@ export interface LiveRtcProps {
  */
 export interface LiveRtcEmits {
   /** 加入频道成功 */
-  (e: 'joined', channelId: string, uid: number): void
+  (e: 'joined', channelId: string, uid: string): void
   /** 离开频道 */
   (e: 'left'): void
   /** 错误事件 */
@@ -65,7 +63,7 @@ export interface RtcState {
   /** 当前频道ID */
   channelId: string | null
   /** 本地用户ID */
-  localUid: number | null
+  localUid: string | null
   /** 远程用户列表 */
   remoteUsers: RtcUser[]
   /** 是否正在加入 */
@@ -83,7 +81,7 @@ export interface LiveRtcExpose {
   /** 加入RTC频道 */
   joinChannel: () => Promise<void>
   /** 离开RTC频道 */
-  leaveChannel: (cleanupVideoElement?: () => void) => Promise<void>
+  leaveChannel: () => Promise<void>
   /** 获取RTC状态 */
   getState: () => {
     joined: boolean
@@ -93,50 +91,4 @@ export interface LiveRtcExpose {
     joining: boolean
     error: string | null
   }
-}
-
-/**
- * useRTC Hook 配置选项
- */
-export interface UseRTCOptions {
-  /** RTC频道名称 */
-  channelName: string
-  /** 客户端角色（主播/观众） */
-  role: ClientRole
-  /** 环信聊天客户端实例（用于获取RTC Token） */
-  chatClient: EasemobChat.Connection
-  /** 是否自动加入频道 */
-  autoJoin?: boolean
-}
-
-/**
- * useRTC Hook 返回类型
- */
-export interface UseRTCReturn {
-  /** RTC状态 */
-  state: RtcState
-  /** 本地视频轨道 */
-  localVideoTrack: Ref<ICameraVideoTrack | null>
-  /** 本地音频轨道 */
-  localAudioTrack: Ref<IMicrophoneAudioTrack | null>
-  /** 远程用户列表 */
-  remoteUsers: Ref<RtcUser[]>
-  /** 步骤1：初始化RTC客户端 */
-  initRTC: () => Promise<void>
-  /** 步骤2：挂载事件监听器 */
-  setupEventListeners: () => void
-  /** 步骤3：获取RTC访问Token */
-  getAccessToken: () => Promise<string | null>
-  /** 步骤4：加入RTC频道 */
-  joinChannel: () => Promise<void>
-  /** 步骤5：发布本地音视频流（主播专用） */
-  publishTracks: () => Promise<void>
-  /** 关闭本地音视频轨道 */
-  closeLocalTracks: (cleanupVideoElement?: () => void) => Promise<void>
-  /** 播放本地视频预览 */
-  playLocalVideo: (element: HTMLVideoElement) => void
-  /** 离开RTC频道 */
-  leaveChannel: (cleanupVideoElement?: () => void) => Promise<void>
-  /** 获取Agora客户端实例 */
-  getClient: () => any
 }
