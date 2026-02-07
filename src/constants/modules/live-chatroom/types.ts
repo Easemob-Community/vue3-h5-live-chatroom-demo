@@ -8,6 +8,9 @@
 export interface UserConfig {
   /** 用户ID */
   userId: string;
+  /** 用户昵称 */
+  nickname: string;
+
   /** 用户密码 */
   password: string;
   /** 访问令牌（可选） */

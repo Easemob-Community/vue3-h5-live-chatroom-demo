@@ -4,7 +4,7 @@
     <template v-slot="{ item, active }">
       <DynamicScrollerItem :item="item" :active="active" :size-dependencies="[item.msg]" :data-index="item.id">
         <div class="danmaku-item">
-          <span class="danmaku-nickname">{{ item.from }}</span>
+          <span class="danmaku-nickname">{{ item?.ext?.nickname || item.from }}</span>
           <span class="danmaku-separator">:</span>
           <span class="danmaku-content">{{ item.msg }}</span>
         </div>

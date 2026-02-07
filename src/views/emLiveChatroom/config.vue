@@ -6,9 +6,16 @@
       <!-- 用户配置 -->
       <van-cell-group title="用户配置">
         <van-field v-model="form.userId" label="用户ID" placeholder="请输入用户ID" clearable />
-        <van-field v-model="form.password" label="密码" placeholder="请输入密码" type="password" clearable />
-        <van-field v-model="form.accessToken" label="AccessToken" placeholder="请输入访问令牌" type="textarea" rows="2"
-          clearable />
+        <!-- 进入直播间的昵称 -->
+        <van-field v-model="form.nickname" label="昵称" placeholder="请输入进入直播间的昵称" clearable />
+        <van-field v-model="form.password" label="密码" placeholder="请输入密码（密码和Token任选其一）" clearable />
+        <van-field v-model="form.accessToken" label="AccessToken" placeholder="请输入访问令牌（密码和Token任选其一）" type="textarea"
+          rows="2" clearable />
+        <van-cell class="auth-tip">
+          <template #title>
+            <span class="tip-text">💡 密码和AccessToken任选其一填写即可</span>
+          </template>
+        </van-cell>
       </van-cell-group>
 
       <!-- 角色选择 -->
@@ -53,10 +60,10 @@
         <van-button type="primary" block round @click="saveConfig">
           保存配置
         </van-button>
-        <van-button type="success" block round @click="enterLiveRoom" class="enter-btn">
+        <van-button type="success" block round class="enter-btn" @click="enterLiveRoom">
           进入直播间
         </van-button>
-        <van-button type="default" block round @click="resetConfig" class="reset-btn">
+        <van-button type="default" block round class="reset-btn" @click="resetConfig">
           重置为默认
         </van-button>
       </div>
@@ -75,6 +82,7 @@ const router = useRouter();
 // 表单数据
 const form = ref({
   userId: '',
+  nickname: '',
   password: '',
   accessToken: '',
   role: 'audience' as 'host' | 'audience',
@@ -87,6 +95,7 @@ const form = ref({
 // 默认配置
 const defaultConfig = {
   userId: liveChatroomConfig.user.userId,
+  nickname: liveChatroomConfig.user.nickname,
   password: liveChatroomConfig.user.password,
   accessToken: liveChatroomConfig.user.accessToken || '',
   role: 'host' as 'host' | 'audience',
@@ -129,6 +138,13 @@ const saveConfig = () => {
       showToast('请输入用户ID');
       return;
     }
+
+    // 验证密码和Token至少填写一个
+    if (!form.value.password.trim() && !form.value.accessToken.trim()) {
+      showToast('密码和AccessToken至少填写一个');
+      return;
+    }
+
     if (!form.value.channelName.trim()) {
       showToast('请输入频道名称');
       return;
@@ -217,5 +233,14 @@ const onClickLeft = () => {
 
 .reset-btn {
   margin-top: 8px;
+}
+
+.auth-tip {
+  background-color: #ecf5ff;
+}
+
+.auth-tip .tip-text {
+  font-size: 12px;
+  color: #409eff;
 }
 </style>

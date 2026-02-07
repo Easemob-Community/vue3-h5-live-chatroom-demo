@@ -2,9 +2,9 @@
   <LiveContainer ref="containerRef" :show-status="showStatus">
     <!-- RTC层插槽 -->
     <template #rtc>
-      <LiveRTC :channel-name="channelName" :user-id="userId" :role="rtcRole" :auto-join="true" @joined="handleRtcJoined"
-        @left="handleRtcLeft" @error="handleRtcError" @user-published="handleUserPublished"
-        @user-unpublished="handleUserUnpublished" ref="rtcRef" />
+      <LiveRTC ref="rtcRef" :channel-name="channelName" :user-id="userId" :role="rtcRole" :auto-join="true"
+        @joined="handleRtcJoined" @left="handleRtcLeft" @error="handleRtcError" @user-published="handleUserPublished"
+        @user-unpublished="handleUserUnpublished" />
     </template>
 
     <!-- 弹幕层插槽 -->
@@ -47,7 +47,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useThrottleFn, useDebounceFn } from '@vueuse/core';
+import { useDebounceFn } from '@vueuse/core';
 import { showToast } from 'vant';
 import DanmakuComp from './components/DanmakuList/index.vue';
 import LiveRTC from './components/LiveRTC/index.vue';
@@ -82,6 +82,7 @@ const savedConfig = loadConfig();
 const liveConfig = {
   user: {
     userId: savedConfig?.userId || liveChatroomConfig.user.userId,
+    nickname: savedConfig?.nickname || liveChatroomConfig.user.nickname,
     password: savedConfig?.password || liveChatroomConfig.user.password,
     accessToken: savedConfig?.accessToken || liveChatroomConfig.user.accessToken,
   },
@@ -173,9 +174,9 @@ const mountEMConnectedListener = () => {
     },
   });
 };
-// 挂载消息监听
+// 挂载互动直播间消息监听
 const mountEMMessageListener = () => {
-  EMClient.addEventHandler('RECEIVED_NEW_MESSAGE', {
+  EMClient.addEventHandler('RECEIVE_MESSAGE', {
     onTextMessage: (message: EasemobChat.TextMsgBody) => {
       batchUpdate(message);
     },
@@ -183,7 +184,7 @@ const mountEMMessageListener = () => {
 };
 // 挂载信令直播间信令监听
 const mountEMSignalingChatroomListener = () => {
-  EMClient.addEventHandler('RECEIVED_NEW_MESSAGE', {
+  EMClient.addEventHandler('RECEIVED_SIGNALING_MESSAGE', {
     onCustomMessage(msg: EasemobChat.CustomMsgBody) {
       console.log('onCustomMessage', msg);
     },
@@ -275,7 +276,7 @@ const sendMessage = useDebounceFn(async () => {
     msg: messageContent.value,
     chatType: 'chatRoom',
     ext: {
-      nickname: liveConfig.user.userId,
+      nickname: `${liveConfig.user.nickname}(${liveConfig.user.userId})`,
       timestamp: Date.now(),
       channelName: channelName.value
     }
@@ -294,15 +295,15 @@ const sendMessage = useDebounceFn(async () => {
 
 /**
  * @param message
- * @description 节流更新消息列表，避免频繁更新 DOM，导致性能问题,500毫秒内只更新一次新收到的消息
+ * @description 更新消息列表
  */
-const batchUpdate = useThrottleFn((message) => {
+const batchUpdate = (message: EasemobChat.ExcludeAckMessageBody) => {
   // 如果消息列表长度超过30条，删除最早的一条消息
   if (messageList.value.length > MAX_MESSAGES_LIST) {
     messageList.value.shift();
   }
   messageList.value.push(message);
-}, 500); // 防抖时间为300毫秒，可根据实际情况调整
+};
 
 /**
  * 大型直播间模式下的消息处理。
