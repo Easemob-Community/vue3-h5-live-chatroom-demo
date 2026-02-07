@@ -370,8 +370,31 @@ const goToConfig = () => {
 };
 
 // 返回首页
-const goToHome = () => {
-  router.push('/home');
+const goToHome = async () => {
+  console.log('[emLiveChatroom] 点击返回首页，开始清理资源')
+
+  // 主动清理 RTC 资源
+  if (rtcRef.value) {
+    try {
+      await rtcRef.value.leaveChannel()
+      console.log('[emLiveChatroom] ✅ RTC 资源已清理')
+    } catch (error) {
+      console.error('[emLiveChatroom] 清理 RTC 资源时出错:', error)
+    }
+  }
+
+  // 清理 IM 连接
+  try {
+    EMClient.close()
+    EMClient.removeEventHandler('CONNECTED')
+    EMClient.removeEventHandler('RECEIVED_NEW_MESSAGE')
+    console.log('[emLiveChatroom] ✅ IM 连接已关闭')
+  } catch (error) {
+    console.error('[emLiveChatroom] 关闭 IM 连接时出错:', error)
+  }
+
+  // 跳转到首页
+  router.push('/home')
 };
 </script>
 
