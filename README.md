@@ -75,4 +75,21 @@
 
 ## 详细文档
 
-📄 [IM直播间弹幕集成文档](./IM直播间弹幕集成文档.md) - 包含完整的架构设计、代码实现和使用说明
+### 📚 文档目录
+
+| 文档 | 说明 |
+|------|------|
+| 📄 [IM 直播间弹幕集成文档](./docs/IM_DANMAKU_README.md) | 环信 IM SDK 集成指南，包含双聊天室架构、消息处理策略、弹幕组件实现 |
+| 📄 [声网 RTC 直播能力文档](./docs/RTC_README.md) | 声网 Agora RTC SDK 集成指南，包含音视频推拉流、角色管理、Token 鉴权 |
+
+### 📁 相关文件
+
+| 文件路径 | 说明 |
+|----------|------|
+| `src/easeim/index.ts` | 环信 IM SDK 初始化 |
+| `src/easeim/live-rtc.ts` | 声网 RTC 封装类 |
+| `src/views/emLiveChatroom/index.vue` | 直播间主页面 |
+| `src/views/emLiveChatroom/config.vue` | 直播间配置页面 |
+| `src/views/emLiveChatroom/components/LiveRTC/index.vue` | RTC 视频组件 |
+| `src/views/emLiveChatroom/components/DanmakuList/index.vue` | 弹幕列表组件 |
+| `src/constants/modules/live-chatroom/index.ts` | 直播间配置文件 |
