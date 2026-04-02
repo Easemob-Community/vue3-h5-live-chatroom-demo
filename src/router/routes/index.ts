@@ -273,6 +273,13 @@ const routes = [
     },
   },
   {
+    path: '/im/livechatroom/batch-demo',
+    component: () => import('@/views/emLiveChatroom/batch-demo/index.vue'),
+    meta: {
+      title: '批量弹幕演示',
+    },
+  },
+  {
     path: '/404',
     component: () => import('@/views/exception/404.vue'),
     meta: {

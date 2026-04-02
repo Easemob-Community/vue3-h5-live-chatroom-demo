@@ -56,7 +56,7 @@ function getGoodList() {
 function onGoodClicked(id: number) {
   router.push({ path: '/good/detail', query: { id } });
 }
-//IM 进入直播间路由所需携带的必填参数
+// IM 进入直播间路由所需携带的必填参数
 const LOGIN_USERID = 'hfp';
 const LOGIN_ROOMID = '270955842699265';
 const LOGIN_ACCESS_TOKEN =
@@ -67,18 +67,21 @@ const entryLiveChatroom = () => {
     query: { userId: LOGIN_USERID, roomId: LOGIN_ROOMID, token: LOGIN_ACCESS_TOKEN },
   });
 };
+
+// 进入批量弹幕演示
+const entryBatchDemo = () => {
+  router.push({
+    path: '/im/livechatroom/batch-demo',
+  });
+};
 </script>
 
 <template>
   <div class="container">
     <div class="swiper">
       <van-swipe :autoplay="5000" class="swiper">
-        <van-swipe-item
-          v-for="item in bannerList"
-          :key="item.id"
-          class="swiper-item"
-          @click="onBannerClicked(item.linkUrl)"
-        >
+        <van-swipe-item v-for="item in bannerList" :key="item.id" class="swiper-item"
+          @click="onBannerClicked(item.linkUrl)">
           <van-image class="swiper-item-img" fit="cover" :src="item.picUrl" :alt="item.title" />
         </van-swipe-item>
       </van-swipe>
@@ -98,18 +101,24 @@ const entryLiveChatroom = () => {
             <div class="live-item-desc">点击进入测试直播间，感受直播间内嵌IM的效果。</div>
           </div>
         </div>
+        <div class="live-item" @click="entryBatchDemo">
+          <van-image class="live-item-img" fit="cover" :src="IMAGE_LIVE" :alt="IMAGE_LIVE" />
+          <div class="live-item-info">
+            <div class="live-item-title">
+              <div class="live-item-title-name">
+                <span>批量弹幕演示</span>
+              </div>
+              <van-tag type="primary">新功能</van-tag>
+            </div>
+            <div class="live-item-desc">演示1秒聚合批量更新弹幕效果，支持高优先级消息即时显示。</div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="main">
       <Plate class="section-header" title="商品列表" />
-      <ProList
-        ref="listRef"
-        v-model:dataSource="list"
-        mode="infinite"
-        :api="getGoodList"
-        :pagination="pagination"
-        :meta="listMeta"
-      >
+      <ProList ref="listRef" v-model:dataSource="list" mode="infinite" :api="getGoodList" :pagination="pagination"
+        :meta="listMeta">
         <div class="list">
           <div v-for="item in list" :key="item.id" class="list-col">
             <div class="list-item" @click="onGoodClicked(item.id)">
@@ -262,35 +271,43 @@ const entryLiveChatroom = () => {
     }
   }
 }
+
 .live-list {
   display: flex;
   flex-wrap: wrap;
   padding-left: 5px;
 }
+
 .live-item {
   display: flex;
   flex-direction: column;
   width: 50%;
 }
+
 .live-item-img {
   width: 100%;
   height: 150px;
 }
+
 .live-item-info {
   padding: 10px;
 }
+
 .live-item-title {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
+
 .live-item-title-name {
   display: flex;
   align-items: center;
 }
+
 .live-item-title-time {
   display: flex;
 }
+
 .live-item-desc {
   margin-top: 5px;
   font-size: 14px;
