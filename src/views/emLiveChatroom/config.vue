@@ -44,6 +44,15 @@
         </van-cell>
       </van-cell-group>
 
+      <!-- 互动特效配置 -->
+      <van-cell-group title="互动特效配置">
+        <van-cell title="点赞飘浮动画">
+          <template #right-icon>
+            <van-switch v-model="form.showLikeAnimation" size="24px" active-color="#07c160" inactive-color="#dcdee0" />
+          </template>
+        </van-cell>
+      </van-cell-group>
+
       <!-- RTC配置 -->
       <van-cell-group title="RTC配置">
         <van-field v-model="form.channelName" label="频道名称" placeholder="请输入RTC频道名称" clearable />
@@ -87,6 +96,7 @@ const form = ref({
   accessToken: '',
   role: 'audience' as 'host' | 'audience',
   isLargeMode: false,
+  showLikeAnimation: true,
   channelName: '',
   signalingRoomId: '',
   interactiveRoomId: '',
@@ -100,6 +110,7 @@ const defaultConfig = {
   accessToken: liveChatroomConfig.user.accessToken || '',
   role: 'host' as 'host' | 'audience',
   isLargeMode: false,
+  showLikeAnimation: true,
   channelName: liveChatroomConfig.rtc.channelName,
   signalingRoomId: liveChatroomConfig.chatrooms.signaling.roomId,
   interactiveRoomId: liveChatroomConfig.chatrooms.interactive.roomId,

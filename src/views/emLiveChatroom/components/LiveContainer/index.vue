@@ -35,6 +35,11 @@
       </div>
     </div>
 
+    <!-- 点赞动画层：位于弹幕层之上，控制层之下 -->
+    <div class="like-animation-layer">
+      <slot name="like-animation"></slot>
+    </div>
+
     <!-- 控制层：底部 -->
     <div class="control-layer">
       <slot name="control"></slot>
@@ -156,6 +161,18 @@ defineExpose({
   border-radius: 8px;
   color: white;
   font-size: 12px;
+}
+
+/* 点赞动画层 */
+.like-animation-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 25;
+  pointer-events: none;
+  /* 子元素可单独开启交互 */
 }
 
 /* 控制层 - 底部 */

@@ -12,6 +12,18 @@
       <DanmakuComp :message-list="messageList" />
     </template>
 
+    <!-- 点赞动画层插槽 -->
+    <template #like-animation>
+      <LikeAnimation
+        ref="likeAnimationRef"
+        :visible="showLikeAnimation"
+        :report-api="handleLikeReport"
+        @like-click="handleLocalLikeClick"
+        @report-success="handleReportSuccess"
+        @report-fail="handleReportFail"
+      />
+    </template>
+
     <!-- 顶部控制层插槽 -->
     <template #control-top>
       <!-- 返回首页按钮 -->
@@ -52,6 +64,7 @@ import { showToast } from 'vant';
 import DanmakuComp from './components/DanmakuList/index.vue';
 import LiveRTC from './components/LiveRTC/index.vue';
 import LiveContainer from './components/LiveContainer/index.vue';
+import LikeAnimation from './components/LikeAnimation/index.vue';
 import type { LiveRtcExpose } from './components/LiveRTC/types';
 import { WebSDK, EMClient, EasemobChat } from '@/easeim';
 import { liveChatroomConfig } from '@/constants';
@@ -100,11 +113,13 @@ const liveConfig = {
 const router = useRouter();
 const containerRef = ref<InstanceType<typeof LiveContainer> | null>(null);
 const rtcRef = ref<LiveRtcExpose | null>(null);
+const likeAnimationRef = ref<InstanceType<typeof LikeAnimation> | null>(null);
 
 // ============================================
 // 页面状态
 // ============================================
 const showStatus = ref(true);
+const showLikeAnimation = ref(savedConfig?.showLikeAnimation !== false); // 默认开启点赞动画
 const rtcRole = ref<'host' | 'audience'>(savedConfig?.role || 'host');
 const isLargeMode = ref(savedConfig?.isLargeMode || false);
 const userId = ref<string>(liveConfig.user.userId);
@@ -167,22 +182,28 @@ const setupIMListeners = () => {
     },
   });
 
-  // 互动直播间消息监听
+  // 互动直播间消息监听（包含文本消息和 CMD 命令消息）
   EMClient.addEventHandler('RECEIVE_MESSAGE', {
     onTextMessage: (message: EasemobChat.TextMsgBody) => {
       if (message.to === roomId.value) {
         batchUpdate(message);
       }
     },
+    onCmdMessage: (message: EasemobChat.CmdMsgBody) => {
+      if (message.to === roomId.value) {
+        handleInteractiveCmdMessage(message);
+      }
+    },
   });
 
-  // 信令直播间监听
+  // 信令直播间监听（连麦邀请、开关播、踢人/禁言等控制信令）
+  // 注意：点赞、弹幕等高频互动消息应走互动聊天室，不要占用信令通道
   EMClient.addEventHandler('RECEIVED_SIGNALING_MESSAGE', {
     onCustomMessage(msg: EasemobChat.CustomMsgBody) {
-      console.log('[LiveRoom] 收到自定义消息:', msg);
+      console.log('[LiveRoom] 信令聊天室收到自定义消息:', msg);
     },
     onCmdMessage(msg: EasemobChat.CmdMsgBody) {
-      console.log('[LiveRoom] 收到命令消息:', msg);
+      console.log('[LiveRoom] 信令聊天室收到命令消息:', msg);
     },
   });
 };
@@ -360,6 +381,80 @@ const sendMessageInLargeMode = async () => {
 // ============================================
 // 页面导航
 // ============================================
+// ============================================
+// 点赞动画与上报
+// ============================================
+
+/**
+ * 处理互动聊天室收到的 CMD 命令消息
+ * 
+ * 【设计说明】点赞 CMD 走互动聊天室下发，不走信令聊天室。
+ * 原因：
+ *   1. 点赞是高频"可级"更新，允许轻微丢失，适合互动聊天室的广播模型；
+ *   2. 互动聊天室可支持更频繁的服务端聚合广播（1~5条/秒）；
+ *   3. 信令聊天室应留给连麦、开关播等必须可靠到达的控制信令。
+ * 
+ * 识别 action 为 'like' 的点赞消息，触发飘浮动画。
+ */
+const handleInteractiveCmdMessage = (msg: EasemobChat.CmdMsgBody) => {
+  console.log('[LiveRoom] 互动直播间收到 CMD 消息:', msg);
+
+  // 判断是否为点赞消息
+  const action = msg.action || '';
+  const isLikeAction = action === 'like' || action === 'Like' || action === 'LIKE';
+
+  if (!isLikeAction) return;
+
+  // 从 ext 中解析点赞数量，服务端聚合后下发
+  const ext = (msg.ext || {}) as Record<string, any>;
+  const likeNumberRaw = ext.like_number || ext.likeNumber || ext.like_count || '1';
+  const likeNumber = parseInt(String(likeNumberRaw), 10) || 1;
+
+  console.log(`[LiveRoom] 收到点赞 CMD，数量: ${likeNumber}`);
+
+  // 触发点赞飘浮动画
+  likeAnimationRef.value?.triggerLike(likeNumber);
+};
+
+/**
+ * 用户本地点击点赞后的上报接口（预留）
+ * 实际业务中可替换为真实的 HTTP 上报接口
+ */
+const handleLikeReport = async (count: number): Promise<void> => {
+  console.log(`[LiveRoom] 点赞上报（聚合）: ${count} 次`);
+
+  // TODO: 接入真实的业务上报接口
+  // 示例：
+  // await fetch('https://your-api-domain.com/api/live/like', {
+  //   method: 'POST',
+  //   headers: { 'Content-Type': 'application/json' },
+  //   body: JSON.stringify({
+  //     roomId: roomId.value,
+  //     userId: userId.value,
+  //     count,
+  //     timestamp: Date.now(),
+  //   }),
+  // });
+
+  // 当前为演示，模拟上报成功
+  return new Promise((resolve) => setTimeout(resolve, 50));
+};
+
+/** 本地点赞点击回调 */
+const handleLocalLikeClick = (count: number) => {
+  console.log('[LiveRoom] 用户点击点赞，当前聚合计数:', count);
+};
+
+/** 点赞上报成功回调 */
+const handleReportSuccess = (count: number) => {
+  console.log('[LiveRoom] 点赞上报成功，数量:', count);
+};
+
+/** 点赞上报失败回调 */
+const handleReportFail = (error: unknown, count: number) => {
+  console.error('[LiveRoom] 点赞上报失败，数量:', count, '错误:', error);
+};
+
 const goToConfig = () => router.push('/im/livechatroom');
 
 const goToHome = async () => {

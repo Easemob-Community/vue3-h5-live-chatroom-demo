@@ -81,6 +81,7 @@
 |------|------|
 | 📄 [IM 直播间弹幕集成文档](./docs/IM_DANMAKU_README.md) | 环信 IM SDK 集成指南，包含双聊天室架构、消息处理策略、弹幕组件实现 |
 | 📄 [声网 RTC 直播能力文档](./docs/RTC_README.md) | 声网 Agora RTC SDK 集成指南，包含音视频推拉流、角色管理、Token 鉴权 |
+| 📄 [直播间点赞飘浮动画文档](./docs/LIKE_ANIMATION_IMPLEMENTATION.md) | 直播间点赞动效实现指南，包含互动聊天室 CMD 消息接入、点击聚合上报、性能优化策略 |
 
 ### 📁 相关文件
 
@@ -92,4 +93,5 @@
 | `src/views/emLiveChatroom/config.vue` | 直播间配置页面 |
 | `src/views/emLiveChatroom/components/LiveRTC/index.vue` | RTC 视频组件 |
 | `src/views/emLiveChatroom/components/DanmakuList/index.vue` | 弹幕列表组件 |
+| `src/views/emLiveChatroom/components/LikeAnimation/index.vue` | 点赞飘浮动画组件 |
 | `src/constants/modules/live-chatroom/index.ts` | 直播间配置文件 |
