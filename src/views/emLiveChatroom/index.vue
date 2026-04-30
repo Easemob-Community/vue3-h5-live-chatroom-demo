@@ -2,8 +2,8 @@
   <LiveContainer ref="containerRef" :show-status="showStatus">
     <!-- RTC层插槽 -->
     <template #rtc>
-      <LiveRTC ref="rtcRef" :channel-name="channelName" :user-id="userId" :role="rtcRole"
-        @joined="handleRtcJoined" @left="handleRtcLeft" @error="handleRtcError" @user-published="handleUserPublished"
+      <LiveRTC ref="rtcRef" :channel-name="channelName" :user-id="userId" :role="rtcRole" @joined="handleRtcJoined"
+        @left="handleRtcLeft" @error="handleRtcError" @user-published="handleUserPublished"
         @user-unpublished="handleUserUnpublished" />
     </template>
 
@@ -14,14 +14,8 @@
 
     <!-- 点赞动画层插槽 -->
     <template #like-animation>
-      <LikeAnimation
-        ref="likeAnimationRef"
-        :visible="showLikeAnimation"
-        :report-api="handleLikeReport"
-        @like-click="handleLocalLikeClick"
-        @report-success="handleReportSuccess"
-        @report-fail="handleReportFail"
-      />
+      <LikeAnimation ref="likeAnimationRef" :visible="showLikeAnimation" :report-api="handleLikeReport"
+        @like-click="handleLocalLikeClick" @report-success="handleReportSuccess" @report-fail="handleReportFail" />
     </template>
 
     <!-- 顶部控制层插槽 -->
@@ -252,7 +246,10 @@ const loginIM = async () => {
     await EMClient.open(loginParams);
     await joinLiveSignalingChatroom();
     await joinLiveChatroom();
-    await fetchLiveChatroomHistoryMessages();
+    // 大型直播间消息频次足够，跳过历史消息拉取以减轻服务端并发压力
+    if (!isLargeMode.value) {
+      await fetchLiveChatroomHistoryMessages();
+    }
   } catch (error) {
     console.error('[LiveRoom] IM 登录失败:', error);
   }
@@ -292,9 +289,16 @@ const fetchLiveChatroomHistoryMessages = async () => {
       pageSize: 10,
     });
     if (res?.messages?.length > 0) {
+      // 【重要】历史消息中会包含 CMD 命令消息（如点赞 like、禁言等），
+      // CMD 属于控制/事件类消息，不应展示在弹幕列表中，进入直播间时也不应触发历史动画。
+      // 因此拉取历史消息后，需过滤掉 type === 'cmd' 的消息，仅保留文本等可展示内容。
+      const displayableMessages = res.messages.filter(
+        (msg) => msg.type !== 'cmd'
+      ) as EasemobChat.ExcludeAckMessageBody[];
+
       messageList.value = mergeAndSortMessages(
         messageList.value,
-        res.messages as EasemobChat.ExcludeAckMessageBody[]
+        displayableMessages
       );
     }
   } catch (error) {
@@ -498,7 +502,7 @@ onUnmounted(() => {
   EMClient.removeEventHandler('CONNECTED');
   EMClient.removeEventHandler('RECEIVE_MESSAGE');
   EMClient.removeEventHandler('RECEIVED_SIGNALING_MESSAGE');
-  
+
   // 清理大型模式定时器
   if (largeModeTimer) {
     clearTimeout(largeModeTimer);

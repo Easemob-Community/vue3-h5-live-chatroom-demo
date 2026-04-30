@@ -23,7 +23,7 @@
     "axios": "^0.21.4",
     "compressorjs": "^1.1.1",
     "dayjs": "^1.11.5",
-    "easemob-websdk": "^4.19.0",
+    "easemob-websdk": "^4.19.1",
     "good-storage": "^1.1.1",
     "gsap": "^3.11.5",
     "lodash": "^4.17.23",
